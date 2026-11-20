@@ -236,3 +236,7 @@ body.app{background:#FBF8F8}
 .book hr{border:0;border-top:1px solid var(--line);margin:28px 0}
 .book blockquote{margin:0 0 16px;padding:12px 16px;background:var(--blush);border-left:3px solid var(--garnet);border-radius:8px}
 @media (max-width:640px){.book{padding:24px 20px}.book h2{font-size:1.6rem}}
+/* Lesson rows shrink on small screens */
+.list li > *{min-width:0}
+.list li > div{flex:1}
+@media (max-width:520px){.list li{flex-wrap:wrap;gap:10px}.list li .btn{margin-left:auto}}
