@@ -1,0 +1,1 @@
+Shifo Life functions
