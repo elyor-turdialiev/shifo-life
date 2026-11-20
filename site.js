@@ -10,6 +10,10 @@ const CONFIG = {
 };
 
 (function () {
+  /* Links from Netlify Identity emails land on any page: send them to the login page */
+  if (/(invite_token|recovery_token|confirmation_token)=/.test(location.hash) && !/\/login(\.html)?$/.test(location.pathname)) {
+    location.replace('login.html' + location.hash); return;
+  }
   const doc = document.documentElement;
   const LANGS = ['uz', 'ru', 'en'];
 

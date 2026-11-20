@@ -1,0 +1,6 @@
+# Netlify settings for Shifo Life
+[build]
+  publish = "."
+
+[functions]
+  directory = "functions"

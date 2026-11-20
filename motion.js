@@ -66,6 +66,33 @@
     el.style.setProperty('--rd', Math.min(sibs.indexOf(el), 6));
   });
 
+  /* News ticker: official travel and health updates */
+  const tick = document.querySelector('[data-news]');
+  if (tick) {
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const render = items => {
+      if (!items || !items.length) return;
+      const MON = {
+        uz: ['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'],
+        ru: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
+        en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      };
+      const html = items.map(n => {
+        const d = n.date ? new Date(n.date) : null;
+        const ds = d && !isNaN(d) ? ['uz', 'ru', 'en'].map(l => `<span data-l="${l}">${d.getUTCDate()} ${MON[l][d.getUTCMonth()]}</span>`).join('') : '';
+        const icon = n.kind === 'health' ? 'heart' : 'plane';
+        return `<a class="t-item" href="${esc(n.link)}" target="_blank" rel="noopener"><span class="t-ic"><svg class="ic" aria-hidden="true"><use href="#i-${icon}"/></svg></span><span class="t-src">${esc(n.src)}</span>${ds ? `<span class="t-date">${ds}</span>` : ''}<span class="t-title">${esc(n.title)}</span>${n.level ? `<span class="t-lvl l${n.level}">L${n.level}</span>` : ''}</a>`;
+      }).join('');
+      const track = tick.querySelector('.t-track');
+      track.innerHTML = html + html.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ');
+      tick.hidden = false;
+      requestAnimationFrame(() => track.style.setProperty('--tdur', Math.max(40, track.scrollWidth / 2 / 70) + 's'));
+    };
+    fetch('/.netlify/functions/news').then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => render(d.items))
+      .catch(() => { if (window.SHIFO_NEWS_SAMPLE) render(window.SHIFO_NEWS_SAMPLE.items); });
+  }
+
   /* Reveal on scroll + counters */
   const count = el => {
     const end = parseFloat(el.dataset.count), suf = el.dataset.suffix || '', t0 = performance.now(), d = 1400;
