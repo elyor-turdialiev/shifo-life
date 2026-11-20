@@ -67,6 +67,11 @@
 
   /* ================= LOGIN ================= */
   if (page === 'login') {
+    /* Student / Teacher switch: changes the selected tab; after log in the account's own role decides the area */
+    const roleBtns = document.querySelectorAll('[data-role]');
+    const setRole = r => roleBtns.forEach(b => b.setAttribute('aria-pressed', b.dataset.role === r));
+    roleBtns.forEach(b => b.addEventListener('click', () => { setRole(b.dataset.role); history.replaceState(null, '', b.dataset.role === 'teacher' ? '#teacher' : location.pathname); }));
+    setRole(location.hash === '#teacher' ? 'teacher' : 'student');
     const views = ['login', 'reset', 'invite', 'newpw'].reduce((o, k) => (o[k] = document.getElementById(k + '-view'), o), {});
     const show = v => Object.entries(views).forEach(([k, el]) => el && (el.hidden = k !== v));
     document.querySelectorAll('[data-show]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.show); }));
