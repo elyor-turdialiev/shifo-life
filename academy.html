@@ -10,10 +10,11 @@
 <script>(function(){var l;try{l=localStorage.getItem('shifo-lang')}catch(e){}if(!l){var n=(navigator.language||'').slice(0,2);l=n==='ru'?'ru':n==='en'?'en':'uz'}document.documentElement.lang=l})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="motion.css">
 </head>
-<body data-title-uz="Shifo Academy — boʻlajak hamshiralar uchun ingliz tili" data-title-ru="Shifo Academy — английский для будущих медсестёр" data-title-en="Shifo Academy — English for future nurses">
+<body class="home" data-title-uz="Shifo Academy — boʻlajak hamshiralar uchun ingliz tili" data-title-ru="Shifo Academy — английский для будущих медсестёр" data-title-en="Shifo Academy — English for future nurses">
 <a class="skip" href="#main"><span data-l="uz">Asosiy qismga oʻtish</span><span data-l="ru">Перейти к содержанию</span><span data-l="en">Skip to content</span></a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -31,7 +32,7 @@
 </svg>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="index.html" aria-label="Shifo Life"><svg aria-hidden="true"><use href="#mark"/></svg><span class="brand-word">SHIFO LIFE</span></a>
+    <a class="brand" href="index.html" aria-label="Shifo Life"><svg class="m-dark" aria-hidden="true"><use href="#mark"/></svg><svg class="m-light" aria-hidden="true"><use href="#mark-light"/></svg><span class="brand-word">SHIFO LIFE</span></a>
     <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav" aria-label="Main">
       <a href="clinic.html"><span data-l="uz">Klinika</span><span data-l="ru">Клиника</span><span data-l="en">Clinic</span></a><a href="academy.html" aria-current="page"><span data-l="uz">Akademiya</span><span data-l="ru">Академия</span><span data-l="en">Academy</span></a><a href="abroad.html"><span data-l="uz">Xorijda</span><span data-l="ru">За рубежом</span><span data-l="en">Abroad</span></a><a href="media.html"><span data-l="uz">Media</span><span data-l="ru">Медиа</span><span data-l="en">Media</span></a><a href="about.html"><span data-l="uz">Biz haqimizda</span><span data-l="ru">О нас</span><span data-l="en">About</span></a>
@@ -49,18 +50,30 @@
   </div>
 </header>
 <main id="main">
-<div class="hero">
-  <div class="wrap">
-    <div>
-      <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Academy</p>
-      <h1><span data-l="uz">Boʻlajak hamshiralar uchun ingliz tili</span><span data-l="ru">Английский для будущих медсестёр</span><span data-l="en">English for future nurses</span></h1>
+<section class="slider single" aria-label="Shifo Academy">
+  <div class="slides"><article class="slide is-on" data-bg="academy">
+  <div class="wrap s-grid">
+    <div class="s-copy">
+      <p class="pill"><svg aria-hidden="true"><use href="#mark-light"/></svg>Shifo Academy</p>
+      <h1 class="h1"><span data-l="uz">Boʻlajak hamshiralar uchun ingliz tili</span><span data-l="ru">Английский для будущих медсестёр</span><span data-l="en">English for future nurses</span></h1>
       <p class="lede"><span data-l="uz">Oʻzbek talabalarini AQShda hamshiralikni oʻqishga tayyorlaymiz — kundalik suhbatdan shifoxona tiliga qadar.</span><span data-l="ru">Мы готовим узбекских студентов к учёбе на медсестру в США — от разговорного английского до языка больничной палаты.</span><span data-l="en">We prepare Uzbek students for nursing studies in the USA, from everyday conversation to the language of the hospital ward.</span></p>
-      <div class="actions"><a class="btn btn-p" href="contact.html#academy"><span data-l="uz">Bepul sinovdan boshlash</span><span data-l="ru">Начать с бесплатного урока</span><span data-l="en">Start with a free trial</span></a><a class="btn btn-s" href="#plans"><span data-l="uz">Tariflarni koʻrish</span><span data-l="ru">Смотреть тарифы</span><span data-l="en">See plans</span></a></div>
+      <div class="actions"><a class="btn btn-w" href="contact.html#academy"><span data-l="uz">Bepul sinovdan boshlash</span><span data-l="ru">Начать с бесплатного урока</span><span data-l="en">Start with a free trial</span></a><a class="btn btn-ghost" href="#plans"><span data-l="uz">Tariflarni koʻrish</span><span data-l="ru">Смотреть тарифы</span><span data-l="en">See plans</span></a></div>
       <div class="stats"><div><b>3</b><span><span data-l="uz">daraja: B1, B2, C1</span><span data-l="ru">уровня: B1, B2, C1</span><span data-l="en">levels: B1, B2, C1</span></span></div><div><b>12</b><span><span data-l="uz">hafta har bir darajada</span><span data-l="ru">недель на уровень</span><span data-l="en">weeks per level</span></span></div><div><b>20+</b><span><span data-l="uz">yil — asoschilar AQShda</span><span data-l="ru">лет основатели в США</span><span data-l="en">years our founders in the USA</span></span></div></div>
     </div>
-    <div class="visual"><div class="photo" style="position:absolute;left:70px;top:0;right:0;bottom:60px" data-photo="academy"><div class="ph"><svg viewBox="28 14 340 358" aria-hidden="true"><use href="#mark-mono" style="color:#86182F"/></svg></div></div><div class="ui float" style="left:0;top:50px;width:300px"><p class="k">Medical English · B1</p><p class="t"><span data-l="uz">2-hafta · Inson tanasi</span><span data-l="ru">Неделя 2 · Тело человека</span><span data-l="en">Week 2 · The Human Body</span></p><div class="bar"><i style="width:16%"></i></div><div class="wk"><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="ui float d2" style="right:-10px;bottom:0;width:290px"><div class="line"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></span><div><p class="k"><span data-l="uz">Bepul sinov darsi</span><span data-l="ru">Бесплатный пробный урок</span><span data-l="en">Free trial lesson</span></p><p class="t">Zoom</p></div></div><div class="row"><span class="muted"><span data-l="uz">Daraja va maqsad</span><span data-l="ru">Уровень и цель</span><span data-l="en">Level and goal</span></span><span class="tag"><span data-l="uz">Bepul</span><span data-l="ru">Бесплатно</span><span data-l="en">Free</span></span></div></div></div>
+    <div class="s-art"><svg class="art" viewBox="0 0 600 600" aria-hidden="true">
+  <circle cx="300" cy="300" r="110" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="2 8"/>
+  <circle r="7" fill="#F7C9CF"><animateMotion dur="9s" repeatCount="indefinite" path="M300 190 a110 110 0 1 1 -0.1 0z"/></circle>
+  <g><rect x="278" y="176" width="44" height="28" rx="14" fill="#fff"/><text x="300" y="195" text-anchor="middle" fill="#86182F" font-family="Onest, sans-serif" font-weight="700" font-size="14">B1</text></g><circle cx="300" cy="300" r="175" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="2 8"/>
+  <circle r="7" fill="#F7C9CF"><animateMotion dur="13s" repeatCount="indefinite" path="M300 125 a175 175 0 1 1 -0.1 0z"/></circle>
+  <g><rect x="278" y="111" width="44" height="28" rx="14" fill="#fff"/><text x="300" y="130" text-anchor="middle" fill="#86182F" font-family="Onest, sans-serif" font-weight="700" font-size="14">B2</text></g><circle cx="300" cy="300" r="240" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="2 8"/>
+  <circle r="7" fill="#F7C9CF"><animateMotion dur="18s" repeatCount="indefinite" path="M300 60 a240 240 0 1 1 -0.1 0z"/></circle>
+  <g><rect x="278" y="46" width="44" height="28" rx="14" fill="#fff"/><text x="300" y="65" text-anchor="middle" fill="#86182F" font-family="Onest, sans-serif" font-weight="700" font-size="14">C1</text></g>
+  <circle cx="300" cy="300" r="58" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)"/>
+  <use href="#i-cap" x="277.0" y="277.0" width="46" height="46" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg><div class="gchip word drift" style="left:0;top:14%;--r:-4deg">glucose</div><div class="gchip word drift b" style="right:2%;top:24%;--r:3deg">SBAR handoff</div><div class="gchip word drift c" style="left:4%;bottom:24%;--r:2deg">“Was that 70 or 17?”</div><div class="gchip word drift" style="right:6%;bottom:12%;--r:-3deg">insulin</div></div>
   </div>
-</div><nav class="chapters" aria-label="SHIFO ACADEMY"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO ACADEMY</span><a href="#plans"><span data-l="uz">Tariflar</span><span data-l="ru">Тарифы</span><span data-l="en">Plans</span></a><a href="#course"><span data-l="uz">Kurs dasturi</span><span data-l="ru">Программа</span><span data-l="en">Course</span></a><a href="#study"><span data-l="uz">Qanday oʻqiysiz</span><span data-l="ru">Как вы учитесь</span><span data-l="en">How you study</span></a><a href="#teachers"><span data-l="uz">Oʻqituvchilar</span><span data-l="ru">Преподаватели</span><span data-l="en">Teachers</span></a><a href="#path"><span data-l="uz">Hamshiralikka yoʻl</span><span data-l="ru">Путь в медсёстры</span><span data-l="en">Path to nursing</span></a><a href="#faq"><span data-l="uz">Savollar</span><span data-l="ru">Вопросы</span><span data-l="en">Questions</span></a></div></nav>
+  </article></div>
+</section><nav class="chapters" aria-label="SHIFO ACADEMY"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO ACADEMY</span><a href="#plans"><span data-l="uz">Tariflar</span><span data-l="ru">Тарифы</span><span data-l="en">Plans</span></a><a href="#course"><span data-l="uz">Kurs dasturi</span><span data-l="ru">Программа</span><span data-l="en">Course</span></a><a href="#study"><span data-l="uz">Qanday oʻqiysiz</span><span data-l="ru">Как вы учитесь</span><span data-l="en">How you study</span></a><a href="#teachers"><span data-l="uz">Oʻqituvchilar</span><span data-l="ru">Преподаватели</span><span data-l="en">Teachers</span></a><a href="#path"><span data-l="uz">Hamshiralikka yoʻl</span><span data-l="ru">Путь в медсёстры</span><span data-l="en">Path to nursing</span></a><a href="#faq"><span data-l="uz">Savollar</span><span data-l="ru">Вопросы</span><span data-l="en">Questions</span></a></div></nav>
 
 <section class="sec" id="plans">
   <div class="wrap">
@@ -191,5 +204,6 @@
   </div>
 </footer>
 <script src="site.js"></script>
+<script src="motion.js"></script>
 </body>
 </html>

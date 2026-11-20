@@ -10,10 +10,11 @@
 <script>(function(){var l;try{l=localStorage.getItem('shifo-lang')}catch(e){}if(!l){var n=(navigator.language||'').slice(0,2);l=n==='ru'?'ru':n==='en'?'en':'uz'}document.documentElement.lang=l})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="motion.css">
 </head>
-<body data-title-uz="Bogʻlanish — Shifo Life" data-title-ru="Контакты — Shifo Life" data-title-en="Contact — Shifo Life">
+<body class="" data-title-uz="Bogʻlanish — Shifo Life" data-title-ru="Контакты — Shifo Life" data-title-en="Contact — Shifo Life">
 <a class="skip" href="#main"><span data-l="uz">Asosiy qismga oʻtish</span><span data-l="ru">Перейти к содержанию</span><span data-l="en">Skip to content</span></a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -31,7 +32,7 @@
 </svg>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="index.html" aria-label="Shifo Life"><svg aria-hidden="true"><use href="#mark"/></svg><span class="brand-word">SHIFO LIFE</span></a>
+    <a class="brand" href="index.html" aria-label="Shifo Life"><svg class="m-dark" aria-hidden="true"><use href="#mark"/></svg><svg class="m-light" aria-hidden="true"><use href="#mark-light"/></svg><span class="brand-word">SHIFO LIFE</span></a>
     <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav" aria-label="Main">
       <a href="clinic.html"><span data-l="uz">Klinika</span><span data-l="ru">Клиника</span><span data-l="en">Clinic</span></a><a href="academy.html"><span data-l="uz">Akademiya</span><span data-l="ru">Академия</span><span data-l="en">Academy</span></a><a href="abroad.html"><span data-l="uz">Xorijda</span><span data-l="ru">За рубежом</span><span data-l="en">Abroad</span></a><a href="media.html"><span data-l="uz">Media</span><span data-l="ru">Медиа</span><span data-l="en">Media</span></a><a href="about.html"><span data-l="uz">Biz haqimizda</span><span data-l="ru">О нас</span><span data-l="en">About</span></a>
@@ -113,5 +114,6 @@
   </div>
 </footer>
 <script src="site.js"></script>
+<script src="motion.js"></script>
 </body>
 </html>

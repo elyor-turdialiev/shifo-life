@@ -10,10 +10,11 @@
 <script>(function(){var l;try{l=localStorage.getItem('shifo-lang')}catch(e){}if(!l){var n=(navigator.language||'').slice(0,2);l=n==='ru'?'ru':n==='en'?'en':'uz'}document.documentElement.lang=l})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="motion.css">
 </head>
-<body data-title-uz="Biz haqimizda — Shifo Life" data-title-ru="О нас — Shifo Life" data-title-en="About — Shifo Life">
+<body class="home" data-title-uz="Biz haqimizda — Shifo Life" data-title-ru="О нас — Shifo Life" data-title-en="About — Shifo Life">
 <a class="skip" href="#main"><span data-l="uz">Asosiy qismga oʻtish</span><span data-l="ru">Перейти к содержанию</span><span data-l="en">Skip to content</span></a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -31,7 +32,7 @@
 </svg>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="index.html" aria-label="Shifo Life"><svg aria-hidden="true"><use href="#mark"/></svg><span class="brand-word">SHIFO LIFE</span></a>
+    <a class="brand" href="index.html" aria-label="Shifo Life"><svg class="m-dark" aria-hidden="true"><use href="#mark"/></svg><svg class="m-light" aria-hidden="true"><use href="#mark-light"/></svg><span class="brand-word">SHIFO LIFE</span></a>
     <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav" aria-label="Main">
       <a href="clinic.html"><span data-l="uz">Klinika</span><span data-l="ru">Клиника</span><span data-l="en">Clinic</span></a><a href="academy.html"><span data-l="uz">Akademiya</span><span data-l="ru">Академия</span><span data-l="en">Academy</span></a><a href="abroad.html"><span data-l="uz">Xorijda</span><span data-l="ru">За рубежом</span><span data-l="en">Abroad</span></a><a href="media.html"><span data-l="uz">Media</span><span data-l="ru">Медиа</span><span data-l="en">Media</span></a><a href="about.html" aria-current="page"><span data-l="uz">Biz haqimizda</span><span data-l="ru">О нас</span><span data-l="en">About</span></a>
@@ -49,18 +50,27 @@
   </div>
 </header>
 <main id="main">
-<div class="hero">
-  <div class="wrap">
-    <div>
-      <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Life</p>
-      <h1><span data-l="uz">Shifo gʻoyasiga qurilgan oilaviy brend</span><span data-l="ru">Семейный бренд, построенный на исцелении</span><span data-l="en">A family brand built on healing</span></h1>
+<section class="slider single" aria-label="Shifo Life">
+  <div class="slides"><article class="slide is-on" data-bg="life">
+  <div class="wrap s-grid">
+    <div class="s-copy">
+      <p class="pill"><svg aria-hidden="true"><use href="#mark-light"/></svg>Shifo Life</p>
+      <h1 class="h1"><span data-l="uz">Shifo gʻoyasiga qurilgan oilaviy brend</span><span data-l="ru">Семейный бренд, построенный на исцелении</span><span data-l="en">A family brand built on healing</span></h1>
       <p class="lede"><span data-l="uz">Ishimizning har bir qismi insonlarga qiyin oʻzgarishdan oʻtishga yoki unga moslashishga yordam beradi: sogʻliqda, yashash joyida yoki kasbda.</span><span data-l="ru">Каждая часть нашей работы помогает людям пройти через трудную перемену или приспособиться к ней: в здоровье, в стране или в профессии.</span><span data-l="en">Every part of our work helps people heal or adapt through a hard change: in their health, in their country or in their career.</span></p>
-      <div class="actions"><a class="btn btn-p" href="#vision"><span data-l="uz">Maqsad va vazifa</span><span data-l="ru">Видение и миссия</span><span data-l="en">Our vision and mission</span></a><a class="btn btn-s" href="contact.html"><span data-l="uz">Bogʻlanish</span><span data-l="ru">Связаться</span><span data-l="en">Contact us</span></a></div>
+      <div class="actions"><a class="btn btn-w" href="#vision"><span data-l="uz">Maqsad va vazifa</span><span data-l="ru">Видение и миссия</span><span data-l="en">Our vision and mission</span></a><a class="btn btn-ghost" href="contact.html"><span data-l="uz">Bogʻlanish</span><span data-l="ru">Связаться</span><span data-l="en">Contact us</span></a></div>
       <div class="stats"><div><b>2024</b><span><span data-l="uz">asos solingan</span><span data-l="ru">год основания</span><span data-l="en">founded</span></span></div><div><b>4</b><span><span data-l="uz">yoʻnalish</span><span data-l="ru">направления</span><span data-l="en">fields of work</span></span></div><div><b>20+</b><span><span data-l="uz">yil AQShda</span><span data-l="ru">лет в США</span><span data-l="en">years in the USA</span></span></div></div>
     </div>
-    <div class="visual"><div class="photo" style="position:absolute;left:40px;top:0;right:0;bottom:40px" data-photo="about"><div class="ph"><svg viewBox="28 14 340 358" aria-hidden="true"><use href="#mark-mono" style="color:#86182F"/></svg></div></div><div class="ui float" style="left:0;bottom:0;width:270px"><div class="line"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg></span><div><p class="k"><span data-l="uz">Shiorimiz</span><span data-l="ru">Наш девиз</span><span data-l="en">Our motto</span></p><p class="t"><span data-l="uz">Har bir donada hayot</span><span data-l="ru">Жизнь в каждом зерне</span><span data-l="en">Life in every seed</span></p></div></div></div></div>
+    <div class="s-art"><svg class="art" viewBox="0 0 600 600" aria-hidden="true">
+  <circle cx="300" cy="300" r="245" fill="none" stroke="rgba(255,255,255,.22)" stroke-dasharray="3 9"/>
+  <circle cx="300" cy="300" r="180" fill="rgba(255,255,255,.04)"/>
+  <circle class="pulse-ring" cx="300" cy="300" r="170" fill="none" stroke="rgba(255,255,255,.4)"/>
+  <circle class="pulse-ring b" cx="300" cy="300" r="170" fill="none" stroke="rgba(255,255,255,.4)"/>
+  <g class="breathe"><svg x="175" y="168" width="250" height="263" viewBox="28 14 340 358"><use href="#ring" fill="#FFFFFF"/><g class="seed-in" style="--i:0"><use href="#seedp" fill="#FFFFFF" transform="rotate(0 199.7 232.2) translate(-5 0)"/></g><g class="seed-in" style="--i:1"><use href="#seedp" fill="#FFFFFF" transform="rotate(72 199.7 232.2) translate(-5 0)"/></g><g class="seed-in" style="--i:2"><use href="#seedp" fill="#FFFFFF" transform="rotate(144 199.7 232.2) translate(-5 0)"/></g><g class="seed-in" style="--i:3"><use href="#seedp" fill="#FFFFFF" transform="rotate(216 199.7 232.2) translate(-5 0)"/></g><g class="seed-in" style="--i:4"><use href="#seedp" fill="#FFFFFF" transform="rotate(288 199.7 232.2) translate(-5 0)"/></g></svg></g>
+  <g class="orbit"><g class="counter"><circle cx="300.0" cy="55.0" r="36" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)"/><use href="#i-heart" x="285.0" y="40.0" width="30" height="30" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g><g class="counter"><circle cx="545.0" cy="300.0" r="36" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)"/><use href="#i-cap" x="530.0" y="285.0" width="30" height="30" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g><g class="counter"><circle cx="300.0" cy="545.0" r="36" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)"/><use href="#i-plane" x="285.0" y="530.0" width="30" height="30" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g><g class="counter"><circle cx="55.0" cy="300.0" r="36" fill="rgba(255,255,255,.14)" stroke="rgba(255,255,255,.35)"/><use href="#i-mic" x="40.0" y="285.00000000000006" width="30" height="30" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+</svg><div class="gchip drift" style="left:-4%;top:2%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><div><b>20+</b><small><span data-l="uz">yil AQShda</span><span data-l="ru">лет в США</span><span data-l="en">years in the USA</span></small></div></div><div class="gchip drift b" style="right:-4%;bottom:4%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-sparkle"/></svg></span><div><b>EST. 2024</b><small><span data-l="uz">oilaviy brend</span><span data-l="ru">семейный бренд</span><span data-l="en">a family brand</span></small></div></div></div>
   </div>
-</div><nav class="chapters" aria-label="SHIFO LIFE"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO LIFE</span><a href="#name"><span data-l="uz">Nomimiz</span><span data-l="ru">Наше имя</span><span data-l="en">Our name</span></a><a href="#vision"><span data-l="uz">Maqsad va vazifa</span><span data-l="ru">Видение и миссия</span><span data-l="en">Vision and mission</span></a><a href="#fields"><span data-l="uz">Yoʻnalishlar</span><span data-l="ru">Направления</span><span data-l="en">Our fields</span></a><a href="#goals"><span data-l="uz">Maqsadlar</span><span data-l="ru">Цели</span><span data-l="en">Goals</span></a><a href="#founders"><span data-l="uz">Asoschilar</span><span data-l="ru">Основатели</span><span data-l="en">Founders</span></a></div></nav>
+  </article></div>
+</section><nav class="chapters" aria-label="SHIFO LIFE"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO LIFE</span><a href="#name"><span data-l="uz">Nomimiz</span><span data-l="ru">Наше имя</span><span data-l="en">Our name</span></a><a href="#vision"><span data-l="uz">Maqsad va vazifa</span><span data-l="ru">Видение и миссия</span><span data-l="en">Vision and mission</span></a><a href="#fields"><span data-l="uz">Yoʻnalishlar</span><span data-l="ru">Направления</span><span data-l="en">Our fields</span></a><a href="#goals"><span data-l="uz">Maqsadlar</span><span data-l="ru">Цели</span><span data-l="en">Goals</span></a><a href="#founders"><span data-l="uz">Asoschilar</span><span data-l="ru">Основатели</span><span data-l="en">Founders</span></a></div></nav>
 
 <section class="sec" id="name">
   <div class="wrap word">
@@ -149,5 +159,6 @@
   </div>
 </footer>
 <script src="site.js"></script>
+<script src="motion.js"></script>
 </body>
 </html>

@@ -10,10 +10,11 @@
 <script>(function(){var l;try{l=localStorage.getItem('shifo-lang')}catch(e){}if(!l){var n=(navigator.language||'').slice(0,2);l=n==='ru'?'ru':n==='en'?'en':'uz'}document.documentElement.lang=l})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="motion.css">
 </head>
-<body data-title-uz="Shifo Media — podkastlar va musiqa" data-title-ru="Shifo Media — подкасты и музыка" data-title-en="Shifo Media — podcasts and music">
+<body class="home" data-title-uz="Shifo Media — podkastlar va musiqa" data-title-ru="Shifo Media — подкасты и музыка" data-title-en="Shifo Media — podcasts and music">
 <a class="skip" href="#main"><span data-l="uz">Asosiy qismga oʻtish</span><span data-l="ru">Перейти к содержанию</span><span data-l="en">Skip to content</span></a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -31,7 +32,7 @@
 </svg>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="index.html" aria-label="Shifo Life"><svg aria-hidden="true"><use href="#mark"/></svg><span class="brand-word">SHIFO LIFE</span></a>
+    <a class="brand" href="index.html" aria-label="Shifo Life"><svg class="m-dark" aria-hidden="true"><use href="#mark"/></svg><svg class="m-light" aria-hidden="true"><use href="#mark-light"/></svg><span class="brand-word">SHIFO LIFE</span></a>
     <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav" aria-label="Main">
       <a href="clinic.html"><span data-l="uz">Klinika</span><span data-l="ru">Клиника</span><span data-l="en">Clinic</span></a><a href="academy.html"><span data-l="uz">Akademiya</span><span data-l="ru">Академия</span><span data-l="en">Academy</span></a><a href="abroad.html"><span data-l="uz">Xorijda</span><span data-l="ru">За рубежом</span><span data-l="en">Abroad</span></a><a href="media.html" aria-current="page"><span data-l="uz">Media</span><span data-l="ru">Медиа</span><span data-l="en">Media</span></a><a href="about.html"><span data-l="uz">Biz haqimizda</span><span data-l="ru">О нас</span><span data-l="en">About</span></a>
@@ -49,18 +50,32 @@
   </div>
 </header>
 <main id="main">
-<div class="hero">
-  <div class="wrap">
-    <div>
-      <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Media</p>
-      <h1><span data-l="uz">Oʻz tilimizdagi hikoyalar va musiqa</span><span data-l="ru">Истории и музыка на нашем языке</span><span data-l="en">Stories and music in our own language</span></h1>
+<section class="slider single" aria-label="Shifo Media">
+  <div class="slides"><article class="slide is-on" data-bg="media">
+  <div class="wrap s-grid">
+    <div class="s-copy">
+      <p class="pill"><svg aria-hidden="true"><use href="#mark-light"/></svg>Shifo Media</p>
+      <h1 class="h1"><span data-l="uz">Oʻz tilimizdagi hikoyalar va musiqa</span><span data-l="ru">Истории и музыка на нашем языке</span><span data-l="en">Stories and music in our own language</span></h1>
       <p class="lede"><span data-l="uz">Shifo Media vatanda va xorijdagi oʻzbek tinglovchilari uchun podkast va musiqa yaratadi: sogʻliq, koʻchish, oʻqish va oila haqida samimiy suhbatlar.</span><span data-l="ru">Shifo Media делает подкасты и музыку для узбекских слушателей дома и за рубежом: честные разговоры о здоровье, переезде, учёбе и семье.</span><span data-l="en">Shifo Media makes podcasts and music for Uzbek listeners at home and abroad: honest conversations about health, moving countries, study and family.</span></p>
-      <div class="actions"><a class="btn btn-p" href="#follow"><span data-l="uz">Tinglash</span><span data-l="ru">Слушать</span><span data-l="en">Listen</span><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg></a><a class="btn btn-s" href="#guest"><span data-l="uz">Mehmon boʻlish</span><span data-l="ru">Стать гостем</span><span data-l="en">Be a guest</span></a></div>
+      <div class="actions"><a class="btn btn-w" href="#follow"><span data-l="uz">Tinglash</span><span data-l="ru">Слушать</span><span data-l="en">Listen</span><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg></a><a class="btn btn-ghost" href="#guest"><span data-l="uz">Mehmon boʻlish</span><span data-l="ru">Стать гостем</span><span data-l="en">Be a guest</span></a></div>
       <div class="stats"><div><b><span data-l="uz">Podkast</span><span data-l="ru">Подкаст</span><span data-l="en">Podcast</span></b><span><span data-l="uz">suhbatlar</span><span data-l="ru">разговоры</span><span data-l="en">conversations</span></span></div><div><b><span data-l="uz">Musiqa</span><span data-l="ru">Музыка</span><span data-l="en">Music</span></b><span><span data-l="uz">uyni eslatuvchi</span><span data-l="ru">как дома</span><span data-l="en">that sounds like home</span></span></div><div><b>UZ</b><span><span data-l="uz">oʻz tilimizda</span><span data-l="ru">на нашем языке</span><span data-l="en">in our own language</span></span></div></div>
     </div>
-    <div class="visual"><div class="photo" style="position:absolute;left:70px;top:0;right:0;bottom:60px" data-photo="media"><div class="ph"><svg viewBox="28 14 340 358" aria-hidden="true"><use href="#mark-mono" style="color:#86182F"/></svg></div></div><div class="ui float" style="left:0;top:60px;width:310px"><div class="player"><div class="line"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg></span><div><p class="k">Shifo Podcast</p><p class="t"><span data-l="uz">Yangi sonlar tez orada</span><span data-l="ru">Новые выпуски скоро</span><span data-l="en">New episodes soon</span></p></div></div><div class="pbar"><i></i></div><div class="ctrl"><span class="play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></span><span class="muted" style="font-size:.9rem"><span data-l="uz">Oʻzbek tilida</span><span data-l="ru">На узбекском</span><span data-l="en">In Uzbek</span></span></div></div></div><div class="ui float d2" style="right:-10px;bottom:0;width:270px"><p class="k"><span data-l="uz">Mavzular</span><span data-l="ru">Темы</span><span data-l="en">Topics</span></p><div class="row" style="flex-wrap:wrap;justify-content:flex-start;gap:6px"><span class="tag rose"><span data-l="uz">Sogʻliq</span><span data-l="ru">Здоровье</span><span data-l="en">Health</span></span><span class="tag rose"><span data-l="uz">Xorijda hayot</span><span data-l="ru">Жизнь за рубежом</span><span data-l="en">Life abroad</span></span><span class="tag rose"><span data-l="uz">Oila</span><span data-l="ru">Семья</span><span data-l="en">Family</span></span><span class="tag rose"><span data-l="uz">Musiqa</span><span data-l="ru">Музыка</span><span data-l="en">Music</span></span></div></div></div>
+    <div class="s-art"><svg class="art" viewBox="0 0 600 600" aria-hidden="true">
+  <defs><linearGradient id="vy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A1A1D"/><stop offset=".5" stop-color="#0E0809"/><stop offset="1" stop-color="#2A1A1D"/></linearGradient></defs>
+  <g class="spin" style="animation-duration:9s">
+    <circle cx="300" cy="300" r="215" fill="url(#vy)" stroke="rgba(255,255,255,.12)"/>
+    <circle cx="300" cy="300" r="95" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="109" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="123" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="137" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="151" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="165" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="179" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="193" fill="none" stroke="rgba(255,255,255,.07)"/><circle cx="300" cy="300" r="207" fill="none" stroke="rgba(255,255,255,.07)"/>
+    <path d="M300 85 A215 215 0 0 1 480 180" stroke="rgba(255,255,255,.18)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="300" cy="300" r="74" fill="#86182F"/>
+    <svg x="252" y="250" width="96" height="101" viewBox="28 14 340 358"><use href="#mark-light"/></svg>
+    <circle cx="300" cy="300" r="5" fill="#0E0809"/>
+  </g>
+  <g><circle cx="520" cy="90" r="16" fill="rgba(255,255,255,.2)"/><path d="M520 90 L470 250 L440 270" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <g class="eq"><rect x="150" y="490" width="8" height="30" rx="4" fill="#F7C9CF" style="animation-delay:-0ms"/><rect x="165" y="468" width="8" height="52" rx="4" fill="#F7C9CF" style="animation-delay:-137ms"/><rect x="180" y="450" width="8" height="70" rx="4" fill="#F7C9CF" style="animation-delay:-274ms"/><rect x="195" y="476" width="8" height="44" rx="4" fill="#F7C9CF" style="animation-delay:-411ms"/><rect x="210" y="440" width="8" height="80" rx="4" fill="#F7C9CF" style="animation-delay:-548ms"/><rect x="225" y="460" width="8" height="60" rx="4" fill="#F7C9CF" style="animation-delay:-685ms"/><rect x="240" y="484" width="8" height="36" rx="4" fill="#F7C9CF" style="animation-delay:-822ms"/><rect x="255" y="446" width="8" height="74" rx="4" fill="#F7C9CF" style="animation-delay:-959ms"/><rect x="270" y="470" width="8" height="50" rx="4" fill="#F7C9CF" style="animation-delay:-1096ms"/><rect x="285" y="454" width="8" height="66" rx="4" fill="#F7C9CF" style="animation-delay:-33ms"/><rect x="300" y="492" width="8" height="28" rx="4" fill="#F7C9CF" style="animation-delay:-170ms"/><rect x="315" y="462" width="8" height="58" rx="4" fill="#F7C9CF" style="animation-delay:-307ms"/><rect x="330" y="444" width="8" height="76" rx="4" fill="#F7C9CF" style="animation-delay:-444ms"/><rect x="345" y="480" width="8" height="40" rx="4" fill="#F7C9CF" style="animation-delay:-581ms"/><rect x="360" y="458" width="8" height="62" rx="4" fill="#F7C9CF" style="animation-delay:-718ms"/><rect x="375" y="486" width="8" height="34" rx="4" fill="#F7C9CF" style="animation-delay:-855ms"/><rect x="390" y="450" width="8" height="70" rx="4" fill="#F7C9CF" style="animation-delay:-992ms"/><rect x="405" y="472" width="8" height="48" rx="4" fill="#F7C9CF" style="animation-delay:-1129ms"/><rect x="420" y="490" width="8" height="30" rx="4" fill="#F7C9CF" style="animation-delay:-66ms"/><rect x="435" y="466" width="8" height="54" rx="4" fill="#F7C9CF" style="animation-delay:-203ms"/><rect x="450" y="482" width="8" height="38" rx="4" fill="#F7C9CF" style="animation-delay:-340ms"/></g>
+</svg><div class="gchip drift" style="left:0;top:12%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-headphones"/></svg></span><div><b>Shifo Podcast</b><small><span data-l="uz">oʻzbek tilida</span><span data-l="ru">на узбекском</span><span data-l="en">in Uzbek</span></small></div></div><div class="gchip drift b" style="right:0;top:40%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></span><div><b><span data-l="uz">Musiqa</span><span data-l="ru">Музыка</span><span data-l="en">Music</span></b><small><span data-l="uz">uyni eslatadi</span><span data-l="ru">как дома</span><span data-l="en">sounds like home</span></small></div></div></div>
   </div>
-</div><nav class="chapters" aria-label="SHIFO MEDIA"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO MEDIA</span><a href="#make"><span data-l="uz">Nima qilamiz</span><span data-l="ru">Что мы делаем</span><span data-l="en">What we make</span></a><a href="#topics"><span data-l="uz">Mavzular</span><span data-l="ru">Темы</span><span data-l="en">Topics</span></a><a href="#guest"><span data-l="uz">Mehmon boʻling</span><span data-l="ru">Стать гостем</span><span data-l="en">Be a guest</span></a><a href="#follow"><span data-l="uz">Kuzatib boring</span><span data-l="ru">Подписаться</span><span data-l="en">Follow</span></a></div></nav>
+  </article></div>
+</section><nav class="chapters" aria-label="SHIFO MEDIA"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO MEDIA</span><a href="#make"><span data-l="uz">Nima qilamiz</span><span data-l="ru">Что мы делаем</span><span data-l="en">What we make</span></a><a href="#topics"><span data-l="uz">Mavzular</span><span data-l="ru">Темы</span><span data-l="en">Topics</span></a><a href="#guest"><span data-l="uz">Mehmon boʻling</span><span data-l="ru">Стать гостем</span><span data-l="en">Be a guest</span></a><a href="#follow"><span data-l="uz">Kuzatib boring</span><span data-l="ru">Подписаться</span><span data-l="en">Follow</span></a></div></nav>
 
 <section class="sec" id="make">
   <div class="wrap">
@@ -156,5 +171,6 @@
   </div>
 </footer>
 <script src="site.js"></script>
+<script src="motion.js"></script>
 </body>
 </html>

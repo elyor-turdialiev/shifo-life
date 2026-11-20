@@ -10,10 +10,11 @@
 <script>(function(){var l;try{l=localStorage.getItem('shifo-lang')}catch(e){}if(!l){var n=(navigator.language||'').slice(0,2);l=n==='ru'?'ru':n==='en'?'en':'uz'}document.documentElement.lang=l})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Onest:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="motion.css">
 </head>
-<body data-title-uz="Shifo Clinic — qandli diabet boʻyicha yordam" data-title-ru="Shifo Clinic — помощь при диабете" data-title-en="Shifo Clinic — diabetes care">
+<body class="home" data-title-uz="Shifo Clinic — qandli diabet boʻyicha yordam" data-title-ru="Shifo Clinic — помощь при диабете" data-title-en="Shifo Clinic — diabetes care">
 <a class="skip" href="#main"><span data-l="uz">Asosiy qismga oʻtish</span><span data-l="ru">Перейти к содержанию</span><span data-l="en">Skip to content</span></a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -31,7 +32,7 @@
 </svg>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="index.html" aria-label="Shifo Life"><svg aria-hidden="true"><use href="#mark"/></svg><span class="brand-word">SHIFO LIFE</span></a>
+    <a class="brand" href="index.html" aria-label="Shifo Life"><svg class="m-dark" aria-hidden="true"><use href="#mark"/></svg><svg class="m-light" aria-hidden="true"><use href="#mark-light"/></svg><span class="brand-word">SHIFO LIFE</span></a>
     <button class="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav"><span></span><span></span><span></span></button>
     <nav class="nav" id="nav" aria-label="Main">
       <a href="clinic.html" aria-current="page"><span data-l="uz">Klinika</span><span data-l="ru">Клиника</span><span data-l="en">Clinic</span></a><a href="academy.html"><span data-l="uz">Akademiya</span><span data-l="ru">Академия</span><span data-l="en">Academy</span></a><a href="abroad.html"><span data-l="uz">Xorijda</span><span data-l="ru">За рубежом</span><span data-l="en">Abroad</span></a><a href="media.html"><span data-l="uz">Media</span><span data-l="ru">Медиа</span><span data-l="en">Media</span></a><a href="about.html"><span data-l="uz">Biz haqimizda</span><span data-l="ru">О нас</span><span data-l="en">About</span></a>
@@ -49,20 +50,29 @@
   </div>
 </header>
 <main id="main">
-<div class="hero">
-  <div class="wrap">
-    <div>
-      <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Clinic</p>
-      <h1><span data-l="uz">Qandli diabet bilan yashashda yoningizdagi jamoa</span><span data-l="ru">Команда рядом, когда вы живёте с диабетом</span><span data-l="en">A team beside you for life with diabetes</span></h1>
+<section class="slider single" aria-label="Shifo Clinic">
+  <div class="slides"><article class="slide is-on" data-bg="clinic">
+  <div class="wrap s-grid">
+    <div class="s-copy">
+      <p class="pill"><svg aria-hidden="true"><use href="#mark-light"/></svg>Shifo Clinic</p>
+      <h1 class="h1"><span data-l="uz">Qandli diabet bilan yashashda yoningizdagi jamoa</span><span data-l="ru">Команда рядом, когда вы живёте с диабетом</span><span data-l="en">A team beside you for life with diabetes</span></h1>
       <p class="lede"><span data-l="uz">Qandli diabet — har kungi ish. Shifo Clinic bir martalik qabul emas, sizni vaqt davomida kuzatib boradigan jamoa sifatida qurilgan.</span><span data-l="ru">Диабет — это ежедневная работа. Shifo Clinic — не разовый приём, а команда, которая ведёт вас со временем.</span><span data-l="en">Diabetes is a daily job. Shifo Clinic is built as one team that follows you over time, not a single visit and a prescription.</span></p>
-      <div class="actions"><a class="btn btn-p" href="contact.html#clinic"><span data-l="uz">Qabul haqida soʻrash</span><span data-l="ru">Узнать о приёме</span><span data-l="en">Ask about an appointment</span></a><a class="btn btn-s" href="#diabetes"><span data-l="uz">Diabet haqida</span><span data-l="ru">О диабете</span><span data-l="en">About diabetes</span></a></div>
+      <div class="actions"><a class="btn btn-w" href="contact.html#clinic"><span data-l="uz">Qabul haqida soʻrash</span><span data-l="ru">Узнать о приёме</span><span data-l="en">Ask about an appointment</span></a><a class="btn btn-ghost" href="#diabetes"><span data-l="uz">Diabet haqida</span><span data-l="ru">О диабете</span><span data-l="en">About diabetes</span></a></div>
       <div class="stats"><div><b><span data-l="uz">Diabet</span><span data-l="ru">Диабет</span><span data-l="en">Diabetes</span></b><span><span data-l="uz">asosiy yoʻnalishimiz</span><span data-l="ru">наш профиль</span><span data-l="en">our one focus</span></span></div><div><b><span data-l="uz">1 jamoa</span><span data-l="ru">1 команда</span><span data-l="en">1 team</span></b><span><span data-l="uz">vaqt davomida yoningizda</span><span data-l="ru">рядом со временем</span><span data-l="en">with you over time</span></span></div><div><b><span data-l="uz">Oila</span><span data-l="ru">Семья</span><span data-l="en">Family</span></b><span><span data-l="uz">yaqinlaringiz uchun ham</span><span data-l="ru">и для ваших близких</span><span data-l="en">included in your care</span></span></div></div>
     </div>
-    <div class="visual"><div class="photo" style="position:absolute;left:70px;top:0;right:0;bottom:60px" data-photo="clinic"><div class="ph"><svg viewBox="28 14 340 358" aria-hidden="true"><use href="#mark-mono" style="color:#86182F"/></svg></div></div><div class="ui float" style="left:0;top:60px;width:290px"><div class="line"><span class="ico"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></span><div><p class="k">Shifo Clinic</p><p class="t"><span data-l="uz">Parvarish rejasi</span><span data-l="ru">План ухода</span><span data-l="en">Your care plan</span></p></div></div>
-<ul><li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span data-l="uz">Tekshiruvlar</span><span data-l="ru">Обследования</span><span data-l="en">Check-ups</span></li><li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span data-l="uz">Ovqatlanish rejasi</span><span data-l="ru">План питания</span><span data-l="en">Food plan</span></li><li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span data-l="uz">Muntazam kuzatuv</span><span data-l="ru">Регулярное наблюдение</span><span data-l="en">Regular follow-up</span></li></ul></div><div class="ui float d2" style="right:-10px;bottom:0;width:300px"><p class="k"><span data-l="uz">Koʻrsatkichlaringizni biling</span><span data-l="ru">Знайте свои показатели</span><span data-l="en">Know your numbers</span></p>
-<div class="row" style="flex-wrap:wrap;justify-content:flex-start;gap:6px"><span class="tag rose"><span data-l="uz">Qand</span><span data-l="ru">Сахар</span><span data-l="en">Blood sugar</span></span><span class="tag rose">HbA1c</span><span class="tag rose"><span data-l="uz">Qon bosimi</span><span data-l="ru">Давление</span><span data-l="en">Blood pressure</span></span></div></div></div>
+    <div class="s-art"><svg class="art" viewBox="0 0 600 600" aria-hidden="true">
+  <circle class="pulse-ring" cx="300" cy="280" r="190" fill="none" stroke="rgba(255,255,255,.35)"/>
+  <circle class="pulse-ring c" cx="300" cy="280" r="190" fill="none" stroke="rgba(255,255,255,.35)"/>
+  <circle cx="300" cy="280" r="170" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.14)" stroke-width="18"/>
+  <circle cx="300" cy="280" r="170" fill="none" stroke="#F7C9CF" stroke-width="18" stroke-linecap="round" pathLength="1000" class="draw" transform="rotate(-90 300 280)" style="animation-duration:7s"/>
+  <use href="#i-heart" x="272.0" y="200.0" width="56" height="56" fill="none" stroke="#F7C9CF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="300" y="305" text-anchor="middle" fill="#fff" font-family="Playfair Display, serif" font-size="46" font-weight="600">HbA1c</text>
+  <text x="300" y="338" text-anchor="middle" fill="rgba(255,255,255,.7)" font-family="Onest, sans-serif" font-size="17">blood sugar · blood pressure</text>
+  <path d="M10 520 H170 l18 -36 l22 70 l24 -110 l24 128 l20 -52 H590" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" pathLength="1000" class="draw"/>
+</svg><div class="gchip drift" style="left:0;top:12%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></span><div><b><span data-l="uz">Parvarish rejasi</span><span data-l="ru">План ухода</span><span data-l="en">Care plan</span></b><small><span data-l="uz">bitta jamoa bilan</span><span data-l="ru">с одной командой</span><span data-l="en">with one team</span></small></div></div><div class="gchip drift b" style="right:-2%;top:70%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-bowl"/></svg></span><div><b><span data-l="uz">Ovqatlanish</span><span data-l="ru">Питание</span><span data-l="en">Food plan</span></b><small><span data-l="uz">uydagi taomlar asosida</span><span data-l="ru">на основе домашней еды</span><span data-l="en">built on home cooking</span></small></div></div><div class="gchip drift c" style="left:-2%;top:56%"><span class="gi"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span><div><b><span data-l="uz">Oila uchun</span><span data-l="ru">Для семьи</span><span data-l="en">Family support</span></b></div></div></div>
   </div>
-</div><nav class="chapters" aria-label="SHIFO CLINIC"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO CLINIC</span><a href="#services"><span data-l="uz">Xizmatlar</span><span data-l="ru">Услуги</span><span data-l="en">Services</span></a><a href="#diabetes"><span data-l="uz">Diabet haqida</span><span data-l="ru">О диабете</span><span data-l="en">About diabetes</span></a><a href="#visit"><span data-l="uz">Birinchi qabul</span><span data-l="ru">Первый приём</span><span data-l="en">Your first visit</span></a><a href="#living"><span data-l="uz">Yaxshi yashash</span><span data-l="ru">Жить хорошо</span><span data-l="en">Living well</span></a><a href="#faq"><span data-l="uz">Savollar</span><span data-l="ru">Вопросы</span><span data-l="en">Questions</span></a></div></nav>
+  </article></div>
+</section><nav class="chapters" aria-label="SHIFO CLINIC"><div class="wrap"><span class="who"><svg aria-hidden="true"><use href="#mark"/></svg>SHIFO CLINIC</span><a href="#services"><span data-l="uz">Xizmatlar</span><span data-l="ru">Услуги</span><span data-l="en">Services</span></a><a href="#diabetes"><span data-l="uz">Diabet haqida</span><span data-l="ru">О диабете</span><span data-l="en">About diabetes</span></a><a href="#visit"><span data-l="uz">Birinchi qabul</span><span data-l="ru">Первый приём</span><span data-l="en">Your first visit</span></a><a href="#living"><span data-l="uz">Yaxshi yashash</span><span data-l="ru">Жить хорошо</span><span data-l="en">Living well</span></a><a href="#faq"><span data-l="uz">Savollar</span><span data-l="ru">Вопросы</span><span data-l="en">Questions</span></a></div></nav>
 
 <section class="sec" id="services">
   <div class="wrap">
@@ -148,5 +158,6 @@
   </div>
 </footer>
 <script src="site.js"></script>
+<script src="motion.js"></script>
 </body>
 </html>
