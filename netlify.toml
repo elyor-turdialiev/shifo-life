@@ -4,3 +4,29 @@
 
 [functions]
   directory = "functions"
+
+# The repo is published as it is, so keep server code and data private:
+# functions still run at /.netlify/functions/ and /api/, but their files are never served.
+[[redirects]]
+  from = "/functions/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/node_modules/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify.toml"
+  to = "/404.html"
+  status = 404
+  force = true
