@@ -55,12 +55,7 @@
   <div class="wrap" style="padding-top:64px;padding-bottom:28px">
     <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Clinic</p>
     <h1 class="h1" style="margin-top:18px"><span data-l="uz">Onlayn konsultatsiyaga yozilish</span><span data-l="ru">Запись на онлайн-консультацию</span><span data-l="en">Book an online consultation</span></h1>
-    <p class="lede" style="margin-top:16px;max-width:60ch"><span data-l="uz">Qandli diabet boʻyicha jamoamiz bilan video-konsultatsiya. Vaqtni tanlang va siz bilan qanday bogʻlanishimizni ayting: WhatsApp, Telegram, Zoom yoki Teams.</span><span data-l="ru">Видеоконсультация по диабету с нашей командой. Выберите время и удобный способ связи: WhatsApp, Telegram, Zoom или Teams.</span><span data-l="en">A video consultation about diabetes with our team. Pick a time and tell us how to reach you: WhatsApp, Telegram, Zoom or Teams.</span></p>
-    <ul class="book-facts">
-      <li><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg><span data-l="uz">Onlayn video</span><span data-l="ru">Онлайн-видео</span><span data-l="en">Online video call</span></li>
-      <li><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span><span data-len>45</span> <span data-l="uz">daqiqa</span><span data-l="ru">минут</span><span data-l="en">minutes</span></span></li>
-      <li><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><span data-l="uz">Oilangiz bilan birga ham mumkin</span><span data-l="ru">Можно вместе с семьёй</span><span data-l="en">Family welcome to join</span></li>
-    </ul>
+    <p class="lede" style="margin-top:16px;max-width:52ch"><span data-l="uz">Qandli diabet boʻyicha jamoamiz bilan 45 daqiqalik video-qoʻngʻiroq. Oila aʼzolaringiz ham qatnashishi mumkin.</span><span data-l="ru">45-минутный видеозвонок с нашей командой по диабету. Члены семьи могут присоединиться.</span><span data-l="en">A 45-minute video call about diabetes with our team. Family members are welcome to join.</span></p>
   </div>
 </div>
 
@@ -70,40 +65,31 @@
       <div class="book-main">
         <div class="card bstep" id="step-time">
           <div class="bstep-h"><span class="n">1</span><h2><span data-l="uz">Vaqtni tanlang</span><span data-l="ru">Выберите время</span><span data-l="en">Choose a time</span></h2></div>
-          <p class="muted tz-note" id="tz-note"></p>
+          <div class="cal-h"><p class="cal-m" id="cal-month"></p><div class="cal-nav"><button type="button" id="cal-prev" aria-label="Previous week"><svg class="ic" aria-hidden="true"><use href="#i-arrowl"/></svg></button><button type="button" id="cal-next" aria-label="Next week"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button></div></div>
           <div class="days" id="days" role="tablist" aria-label="Days"><p class="muted"><span data-l="uz">Yuklanmoqda…</span><span data-l="ru">Загрузка…</span><span data-l="en">Loading…</span></p></div>
           <div class="times" id="times"></div>
+          <p class="muted small tz-note" id="tz-note" hidden></p>
         </div>
 
         <form class="card bstep" id="step-details" novalidate>
           <div class="bstep-h"><span class="n">2</span><h2><span data-l="uz">Maʼlumotlaringiz</span><span data-l="ru">Ваши данные</span><span data-l="en">Your details</span></h2></div>
+          <label><span data-l="uz">Ism va familiya</span><span data-l="ru">Имя и фамилия</span><span data-l="en">Full name</span><input name="name" autocomplete="name" required maxlength="100"></label>
           <div class="row2">
-            <label><span data-l="uz">Ism va familiya</span><span data-l="ru">Имя и фамилия</span><span data-l="en">Full name</span><input name="name" autocomplete="name" required maxlength="100"></label>
             <label><span data-l="uz">Telefon</span><span data-l="ru">Телефон</span><span data-l="en">Phone</span><input name="phone" type="tel" autocomplete="tel" required placeholder="+998 __ ___ __ __" maxlength="30"></label>
+            <label><span data-l="uz">Qayerda bogʻlanamiz?</span><span data-l="ru">Где с вами связаться?</span><span data-l="en">Where should we contact you?</span><select name="contact"><option value="telegram">Telegram</option><option value="whatsapp">WhatsApp</option><option value="zoom">Zoom</option><option value="teams">Microsoft Teams</option></select></label>
           </div>
-          <label><span data-l="uz">Siz bilan qanday bogʻlanaylik?</span><span data-l="ru">Как с вами связаться?</span><span data-l="en">How should we reach you?</span><select name="contact"><option value="telegram">Telegram</option><option value="whatsapp">WhatsApp</option><option value="zoom">Zoom</option><option value="teams">Microsoft Teams</option></select></label>
-          <label id="detail-field">
-            <span data-for="whatsapp" hidden><span data-l="uz">Boshqa WhatsApp raqami (ixtiyoriy)</span><span data-l="ru">Другой номер WhatsApp (необязательно)</span><span data-l="en">Different WhatsApp number (optional)</span></span>
-            <span data-for="telegram"><span data-l="uz">Telegram username yoki raqam (ixtiyoriy)</span><span data-l="ru">Telegram username или номер (необязательно)</span><span data-l="en">Telegram username or number (optional)</span></span>
-            <span data-for="zoom teams" hidden><span data-l="uz">Taklif uchun email</span><span data-l="ru">Email для приглашения</span><span data-l="en">Email for the invitation</span></span>
-            <input name="contactDetail" maxlength="120" autocomplete="off">
-          </label>
-          <fieldset><legend><span data-l="uz">Konsultatsiya kim uchun?</span><span data-l="ru">Для кого консультация?</span><span data-l="en">Who is the consultation for?</span></legend>
-            <div class="seg2"><label><input type="radio" name="forWhom" value="me" checked><span><span data-l="uz">Oʻzim uchun</span><span data-l="ru">Для меня</span><span data-l="en">For me</span></span></label><label><input type="radio" name="forWhom" value="family"><span><span data-l="uz">Oila aʼzosi uchun</span><span data-l="ru">Для члена семьи</span><span data-l="en">For a family member</span></span></label></div>
-          </fieldset>
-          <label><span data-l="uz">Holat</span><span data-l="ru">Ситуация</span><span data-l="en">Situation</span><select name="condition"><option value="" data-uz="Tanlang (ixtiyoriy)" data-ru="Выберите (необязательно)" data-en="Choose (optional)">Choose (optional)</option><option value="t1" data-uz="1-tip diabet" data-ru="Диабет 1 типа" data-en="Type 1 diabetes">Type 1 diabetes</option><option value="t2" data-uz="2-tip diabet" data-ru="Диабет 2 типа" data-en="Type 2 diabetes">Type 2 diabetes</option><option value="pre" data-uz="Prediabet" data-ru="Преддиабет" data-en="Prediabetes">Prediabetes</option><option value="preg" data-uz="Homiladorlikdagi diabet" data-ru="Диабет при беременности" data-en="Diabetes in pregnancy">Diabetes in pregnancy</option><option value="unsure" data-uz="Bilmayman / tekshirish kerak" data-ru="Не знаю / нужно проверить" data-en="Not sure / want a check">Not sure / want a check</option></select></label>
-          <label><span data-l="uz">Nimani muhokama qilmoqchisiz? (ixtiyoriy)</span><span data-l="ru">Что хотите обсудить? (необязательно)</span><span data-l="en">What would you like to discuss? (optional)</span><textarea name="note" maxlength="1000"></textarea></label>
+          <label id="detail-field" hidden><span data-l="uz">Taklif uchun email</span><span data-l="ru">Email для приглашения</span><span data-l="en">Email for the invitation</span><input name="contactDetail" type="email" maxlength="120" autocomplete="email" placeholder="name@example.com"></label>
+          <label><span data-l="uz">Shifokor nimani bilishi kerak? (ixtiyoriy)</span><span data-l="ru">Что важно знать врачу? (необязательно)</span><span data-l="en">Anything the doctor should know? (optional)</span><textarea name="note" rows="3" maxlength="1000"></textarea></label>
           <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
           <label class="check"><input type="checkbox" name="consent" required><span><span data-l="uz">Shifo Clinic ushbu maʼlumotlardan konsultatsiyani tashkil qilish uchun foydalanishiga roziman.</span><span data-l="ru">Я согласен(на), что Shifo Clinic использует эти данные для организации консультации.</span><span data-l="en">I agree that Shifo Clinic uses these details to arrange my consultation.</span></span></label>
+          <p class="muted small"><span data-l="uz">Shoshilinch holatda kutmang — tez yordamga qoʻngʻiroq qiling.</span><span data-l="ru">В экстренной ситуации не ждите — вызывайте скорую.</span><span data-l="en">In an emergency, don’t wait: call emergency services.</span></p>
         </form>
       </div>
 
       <aside class="card book-sum" id="summary">
-        <p class="k"><span data-l="uz">Tanlangan vaqt</span><span data-l="ru">Выбранное время</span><span data-l="en">Your consultation</span></p>
         <div id="sum-when" class="sum-when"><p class="muted"><span data-l="uz">Hali vaqt tanlanmagan</span><span data-l="ru">Время ещё не выбрано</span><span data-l="en">No time chosen yet</span></p></div>
         <p class="form-msg" id="book-msg"></p>
         <button class="btn btn-p" type="submit" form="step-details" id="book-btn" disabled><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span data-l="uz">Yozilish</span><span data-l="ru">Записаться</span><span data-l="en">Book this time</span></button>
-        <p class="muted small"><span data-l="uz">Shoshilinch holatda kutmang — tez yordamga qoʻngʻiroq qiling.</span><span data-l="ru">В экстренной ситуации не ждите — вызывайте скорую.</span><span data-l="en">In an emergency, don’t wait: call emergency services.</span></p>
       </aside>
     </div>
 
@@ -112,7 +98,7 @@
 </section>
 
 <form name="clinic-booking" data-netlify="true" netlify-honeypot="bot-field" hidden style="display:none">
-  <input name="bot-field"><input name="booking-id"><input name="when"><input name="name"><input name="phone"><input name="contact"><input name="contact-detail"><input name="for-whom">
+  <input name="bot-field"><input name="booking-id"><input name="when"><input name="name"><input name="phone"><input name="contact"><input name="contact-detail">
 </form>
 <script src="book.js"></script>
 

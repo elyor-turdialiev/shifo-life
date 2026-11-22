@@ -405,3 +405,23 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 .book-hero .wrap{padding-top:calc(var(--head, 72px) + 40px) !important}
 .book-hero .h1{color:var(--ink);max-width:18ch}
 @media (max-width:640px){.book-hero .wrap{padding-top:calc(var(--head, 64px) + 8px) !important}}
+
+/* booking calendar: one week at a time */
+.cal-h{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}
+.cal-m{font-weight:600;font-stretch:135%;color:var(--ink);text-transform:capitalize}
+.cal-nav{display:flex;gap:6px}
+.cal-nav button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--ink);padding:0}
+.cal-nav button:hover:not(:disabled){border-color:var(--garnet);color:var(--garnet)}
+.cal-nav button:disabled{opacity:.3;cursor:default}
+.cal-nav .ic{width:16px;height:16px}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;overflow:visible;padding:0}
+.days button{width:auto;padding:10px 0 12px;gap:4px;border-radius:14px}
+.days button .wd{font-size:.72rem;text-transform:capitalize;letter-spacing:0}
+.days button:disabled{border-color:transparent;background:transparent;cursor:default}
+.days button:disabled b,.days button:disabled .wd{color:var(--muted);opacity:.45}
+.days button:not(:disabled):not([aria-selected="true"]):hover{border-color:var(--garnet)}
+.times{padding-top:16px;margin-top:16px;border-top:1px solid var(--line)}
+.tz-note{margin:12px 0 0 !important}
+#step-details .row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:640px){#step-details .row2{grid-template-columns:minmax(0,1fr)}.days{gap:4px}.days button b{font-size:1.1rem}}
+#detail-field[hidden]{display:none}

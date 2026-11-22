@@ -4,7 +4,21 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const L = (uz, ru, en) => `<span data-l="uz">${uz}</span><span data-l="ru">${ru}</span><span data-l="en">${en}</span>`;
   const LOC = { uz: 'uz-Latn-UZ', ru: 'ru-RU', en: 'en-GB' };
-  const fmt = (d, o, tz) => L(...['uz', 'ru', 'en'].map(l => { const opt = { ...o, ...(tz ? { timeZone: tz } : {}) }; try { return esc(d.toLocaleString(LOC[l], opt)); } catch (e) { return esc(d.toLocaleString('en-GB', opt)); } }));
+  const UZ_M = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'];
+  const UZ_MS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+  const UZ_W = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+  const UZ_WS = ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
+  const uzDate = (d, o) => { // browsers often lack Uzbek month and day names, so write them out
+    const p = {}; new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(o.timeZone ? { timeZone: o.timeZone } : {}) }).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    if (o.hour && !o.month && !o.weekday) return `${p.hour}:${p.minute}`;
+    const w = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), m = +p.month - 1;
+    const mo = o.month ? (o.month === 'long' ? UZ_M : UZ_MS)[m] : '';
+    let s = o.day && o.month ? `${+p.day}-${mo.toLowerCase()}` : mo;
+    if (o.year) s += ` ${p.year}`;
+    if (o.weekday) { const wd = (o.weekday === 'long' ? UZ_W : UZ_WS)[w]; s = s ? `${wd}, ${s}` : wd; }
+    return s;
+  };
+  const fmt = (d, o, tz) => L(...['uz', 'ru', 'en'].map(l => { const opt = { ...o, ...(tz ? { timeZone: tz } : {}) }; if (l === 'uz') return esc(uzDate(d, opt)); try { return esc(d.toLocaleString(LOC[l], opt)); } catch (e) { return esc(d.toLocaleString('en-GB', opt)); } }));
   const myTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })();
   const dayKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const HM = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
@@ -22,7 +36,7 @@
   };
   const root = $('#book'); if (!root) return;
   const form = $('#step-details'), msg = $('#book-msg'), btn = $('#book-btn');
-  let DATA = null, byDay = {}, day = null, pick = null;
+  let DATA = null, byDay = {}, day = null, pick = null, week = null;
   const say = (html, cls) => { msg.innerHTML = html; msg.className = 'form-msg ' + (cls || ''); };
   const sameZone = () => !myTz || !DATA || myTz === DATA.tz;
 
@@ -35,32 +49,44 @@
     byDay = {};
     DATA.slots.forEach(s => { const d = new Date(s); (byDay[dayKey(d)] = byDay[dayKey(d)] || []).push(s); });
     const keys = Object.keys(byDay).sort();
-    $('#tz-note').innerHTML = sameZone()
-      ? L('Vaqtlar Toshkent vaqti boʻyicha.', 'Время указано по Ташкенту.', 'Times are Tashkent time.')
-      : L(`Vaqtlar sizning vaqt mintaqangizda (${esc(myTz)}).`, `Время показано в вашем часовом поясе (${esc(myTz)}).`, `Times are shown in your time zone (${esc(myTz)}).`);
-    if (!keys.length) { $('#days').innerHTML = `<p class="muted">${L('Hozircha boʻsh vaqt yoʻq. Iltimos, bizga yozing.', 'Сейчас нет свободного времени. Пожалуйста, напишите нам.', 'No free times right now. Please write to us.')} <a class="link" href="contact.html#clinic">${L('Bogʻlanish', 'Связаться', 'Contact us')}</a></p>`; $('#times').innerHTML = ''; return; }
+    const tzn = $('#tz-note'); tzn.hidden = sameZone();
+    if (!sameZone()) { const city = esc(myTz.split('/').pop().replace(/_/g, ' ')); tzn.innerHTML = L(`Vaqtlar sizning vaqtingizda (${city}).`, `Время указано по вашему часовому поясу (${city}).`, `Times are in your time zone (${city}).`); }
+    if (!keys.length) { $('.cal-h').hidden = true; $('#days').innerHTML = `<p class="muted">${L('Hozircha boʻsh vaqt yoʻq. Iltimos, bizga yozing.', 'Сейчас нет свободного времени. Пожалуйста, напишите нам.', 'No free times right now. Please write to us.')} <a class="link" href="contact.html#clinic">${L('Bogʻlanish', 'Связаться', 'Contact us')}</a></p>`; $('#times').innerHTML = ''; return; }
     if (!keepDay || !byDay[day]) day = keys[0];
     if (pick && !DATA.slots.includes(pick)) pick = null;
-    $('#days').innerHTML = keys.map(k => { const d = new Date(k + 'T12:00:00'); return `<button type="button" role="tab" data-day="${k}" aria-selected="${k === day}"><span class="wd">${fmt(d, { weekday: 'short' })}</span><b>${d.getDate()}</b><span class="mo">${fmt(d, { month: 'short' })}</span><small>${byDay[k].length}</small></button>`; }).join('');
-    $('#days').querySelectorAll('[data-day]').forEach(b => b.addEventListener('click', () => { day = b.dataset.day; $('#days').querySelectorAll('[data-day]').forEach(x => x.setAttribute('aria-selected', x === b)); times(); }));
+    week = monday(day);
+    cal();
     times(); summary();
   }
+  function monday(k) { const d = new Date(k + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return dayKey(d); }
+  function addDays(k, n) { const d = new Date(k + 'T12:00:00'); d.setDate(d.getDate() + n); return dayKey(d); }
+  function cal() {
+    const keys = Object.keys(byDay).sort(), first = monday(keys[0]), last = monday(keys[keys.length - 1]);
+    const days = [0, 1, 2, 3, 4, 5, 6].map(n => addDays(week, n));
+    const a = new Date(days[0] + 'T12:00:00'), z = new Date(days[6] + 'T12:00:00');
+    $('#cal-month').innerHTML = a.getMonth() === z.getMonth() ? fmt(a, { month: 'long', year: 'numeric' }) : `${fmt(a, { month: 'short' })} – ${fmt(z, { month: 'short', year: 'numeric' })}`;
+    $('#cal-prev').disabled = week <= first; $('#cal-next').disabled = week >= last;
+    if (!days.includes(day) || !byDay[day]) { day = days.find(k => byDay[k]) || day; }
+    $('#days').innerHTML = days.map(k => { const d = new Date(k + 'T12:00:00'), has = !!byDay[k]; return `<button type="button" role="tab" data-day="${k}" aria-selected="${k === day && has}"${has ? '' : ' disabled'}><span class="wd">${fmt(d, { weekday: 'short' })}</span><b>${d.getDate()}</b></button>`; }).join('');
+    $('#days').querySelectorAll('[data-day]:not([disabled])').forEach(b => b.addEventListener('click', () => { day = b.dataset.day; $('#days').querySelectorAll('[data-day]').forEach(x => x.setAttribute('aria-selected', x === b)); times(); }));
+    times();
+  }
+  $('#cal-prev').addEventListener('click', () => { week = addDays(week, -7); cal(); });
+  $('#cal-next').addEventListener('click', () => { week = addDays(week, 7); cal(); });
   function times() {
     $('#times').innerHTML = (byDay[day] || []).map(s => `<button type="button" data-t="${s}" aria-pressed="${s === pick}">${new Date(s).toLocaleTimeString('en-GB', HM)}</button>`).join('');
     $('#times').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { pick = b.dataset.t; $('#times').querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); summary(); say(''); if (window.innerWidth < 900) form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
   }
-  const whenHtml = (s, mins) => { const d = new Date(s);
-    return `<p class="d">${fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}</p><p class="t">${d.toLocaleTimeString('en-GB', HM)}–${new Date(d.getTime() + mins * 60000).toLocaleTimeString('en-GB', HM)}</p>${sameZone() ? '' : `<p class="muted small">${L('Toshkent vaqti', 'По Ташкенту', 'Tashkent time')}: ${d.toLocaleTimeString('en-GB', { ...HM, timeZone: DATA.tz })}</p>`}`; };
+  const whenHtml = (s, mins, tz = true) => { const d = new Date(s);
+    return `<p class="d">${fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}</p><p class="t">${d.toLocaleTimeString('en-GB', HM)}–${new Date(d.getTime() + mins * 60000).toLocaleTimeString('en-GB', HM)}</p>${!tz || sameZone() ? '' : `<p class="muted small">${L('Toshkent vaqti', 'По Ташкенту', 'Tashkent time')}: ${d.toLocaleTimeString('en-GB', { ...HM, timeZone: DATA.tz })}</p>`}`; };
   function summary() {
     const c = form.contact.value;
-    $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes)}<p class="muted small">${DATA.minutes} ${L('daqiqa', 'минут', 'min')} · ${NAMES[c]}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;
+    $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes, false)}<p class="muted small">${L('Video-qoʻngʻiroq', 'Видеозвонок', 'Video call')} · ${NAMES[c]}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;
     btn.disabled = !pick;
   }
   const onContact = () => {
-    const c = form.contact.value;
-    $('#detail-field').querySelectorAll('[data-for]').forEach(s => { s.hidden = !s.dataset.for.split(' ').includes(c); });
-    const inp = form.contactDetail; inp.type = c === 'zoom' || c === 'teams' ? 'email' : 'text'; inp.required = inp.type === 'email';
-    inp.placeholder = c === 'telegram' ? '@username' : c === 'whatsapp' ? '+998' : 'name@example.com';
+    const c = form.contact.value, email = c === 'zoom' || c === 'teams';
+    $('#detail-field').hidden = !email; form.contactDetail.required = email; if (!email) form.contactDetail.value = '';
     summary();
   };
   form.contact.addEventListener('change', onContact); onContact();
@@ -74,14 +100,14 @@
     if ((c === 'zoom' || c === 'teams') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(detail)) { f.contactDetail.focus(); return say(ERR.email, 'err'); }
     if (!f.consent.checked) return say(ERR.consent, 'err');
     btn.disabled = true; say(L('Yozilmoqda…', 'Записываем…', 'Booking…'), 'ok');
-    const body = { start: pick, name: f.name.value.trim(), phone: f.phone.value.trim(), contact: c, contactDetail: detail, forWhom: f.forWhom.value, condition: f.condition.value, note: f.note.value.trim(), consent: true, website: f.website.value, lang: document.documentElement.lang };
+    const body = { start: pick, name: f.name.value.trim(), phone: f.phone.value.trim(), contact: c, contactDetail: detail, note: f.note.value.trim(), consent: true, website: f.website.value, lang: document.documentElement.lang };
     let r, d;
     try { r = await fetch('/api/clinic?action=book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); d = await r.json().catch(() => ({})); }
     catch (err) { r = { ok: false }; d = {}; }
     if (!r.ok) { say(ERR[d.error] || ERR.server, 'err'); btn.disabled = false; if (d.error === 'slot_gone') { pick = null; load(true); } return; }
     const b = d.booking, tashkent = new Date(b.start).toLocaleString('en-GB', { timeZone: DATA.tz, weekday: 'short', day: 'numeric', month: 'short', ...HM });
     /* email notice to the clinic via Netlify Forms (no health details in it) */
-    try { await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ 'form-name': 'clinic-booking', 'booking-id': b.id, when: `${tashkent} (Tashkent)`, name: body.name, phone: body.phone, contact: NAMES[c], 'contact-detail': detail, 'for-whom': body.forWhom }).toString() }); } catch (err) {}
+    try { await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ 'form-name': 'clinic-booking', 'booking-id': b.id, when: `${tashkent} (Tashkent)`, name: body.name, phone: body.phone, contact: NAMES[c], 'contact-detail': detail }).toString() }); } catch (err) {}
     done(b, body);
   });
 

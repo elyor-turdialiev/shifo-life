@@ -209,7 +209,21 @@
 
   /* ================= Academy data (schedule, homework, payments) ================= */
   const LOC = { uz: 'uz-Latn-UZ', ru: 'ru-RU', en: 'en-GB' };
-  const fmt = (d, o) => L(...['uz', 'ru', 'en'].map(l => { try { return esc(d.toLocaleString(LOC[l], o)); } catch (e) { return esc(d.toLocaleString('en-GB', o)); } }));
+  const UZ_M = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'];
+  const UZ_MS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+  const UZ_W = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+  const UZ_WS = ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
+  const uzDate = (d, o) => { // browsers often lack Uzbek month and day names, so write them out
+    const p = {}; new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(o.timeZone ? { timeZone: o.timeZone } : {}) }).formatToParts(d).forEach(x => { p[x.type] = x.value; });
+    if (o.hour && !o.month && !o.weekday) return `${p.hour}:${p.minute}`;
+    const w = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), m = +p.month - 1;
+    const mo = o.month ? (o.month === 'long' ? UZ_M : UZ_MS)[m] : '';
+    let s = o.day && o.month ? `${+p.day}-${mo.toLowerCase()}` : mo;
+    if (o.year) s += ` ${p.year}`;
+    if (o.weekday) { const wd = (o.weekday === 'long' ? UZ_W : UZ_WS)[w]; s = s ? `${wd}, ${s}` : wd; }
+    return s;
+  };
+  const fmt = (d, o) => L(...['uz', 'ru', 'en'].map(l => { if (l === 'uz') return esc(uzDate(d, o)); try { return esc(d.toLocaleString(LOC[l], o)); } catch (e) { return esc(d.toLocaleString('en-GB', o)); } }));
   const dayFmt = d => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
   const timeFmt = d => fmt(d, { hour: '2-digit', minute: '2-digit' });
   const monthFmt = m => { const [y, mo] = m.split('-').map(Number); return fmt(new Date(y, mo - 1, 1, 12), { month: 'long', year: 'numeric' }); };
@@ -914,8 +928,8 @@
             <dl class="kv">
               <dt>${L('Telefon', 'Телефон', 'Phone')}</dt><dd><a class="link" href="tel:${esc(b.phone)}">${esc(b.phone)}</a></dd>
               <dt>${L('Aloqa', 'Связь', 'Contact via')}</dt><dd><a class="btn btn-s btn-sm" href="${esc(contactLink(b))}" target="_blank" rel="noopener">${I('chat')}${CN[b.contact]}${b.contactDetail ? ' · ' + esc(b.contactDetail) : ''}</a></dd>
-              <dt>${L('Kim uchun', 'Для кого', 'For')}</dt><dd>${b.forWhom === 'family' ? L('Oila aʼzosi', 'Член семьи', 'A family member') : L('Oʻzi', 'Для себя', 'Themselves')}</dd>
-              <dt>${L('Holat', 'Ситуация', 'Situation')}</dt><dd>${COND[b.condition] || '—'}</dd>
+              ${b.forWhom === 'family' ? `<dt>${L('Kim uchun', 'Для кого', 'For')}</dt><dd>${L('Oila aʼzosi', 'Член семьи', 'A family member')}</dd>` : ''}
+              ${b.condition ? `<dt>${L('Holat', 'Ситуация', 'Situation')}</dt><dd>${COND[b.condition] || '—'}</dd>` : ''}
               <dt>${L('Til', 'Язык', 'Language')}</dt><dd>${esc((b.lang || '').toUpperCase())}</dd>
               <dt>${L('Yozildi', 'Записан', 'Booked')}</dt><dd>${dayFmt(new Date(b.created))}</dd>
             </dl>
