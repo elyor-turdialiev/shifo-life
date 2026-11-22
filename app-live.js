@@ -53,7 +53,7 @@
     async logout() { const tk = await auth.token(); if (tk) { try { await fetch(API + '/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + tk } }); } catch (e) {} } store.clear(); }
   };
   const rolesOf = u => ((u && u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-  const homeFor = u => rolesOf(u).some(r => r === 'teacher' || r === 'admin') ? 'teacher.html' : 'student.html';
+  const homeFor = u => rolesOf(u).some(r => r === 'teacher' || r === 'admin' || r === 'clinic') ? 'teacher.html' : 'student.html';
   const nameOf = u => (u.user_metadata && u.user_metadata.full_name) || u.email.split('@')[0];
   const initials = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('') || '•';
   async function fn(name, params) {
@@ -149,10 +149,11 @@
   const views = [...document.querySelectorAll('.view')];
   const navLinks = [...document.querySelectorAll('[data-view]')];
   const RENDER = {}, rendered = {};
-  let USER = null;
+  let USER = null, ALLOWED = null;
 
   function route() {
-    const name = (location.hash || '#overview').slice(1);
+    let name = (location.hash || '#overview').slice(1);
+    if (ALLOWED && !ALLOWED.includes(name)) name = ALLOWED[0];
     const v = views.find(x => x.id === 'view-' + name) || views[0];
     const key = v.id.slice(5);
     views.forEach(x => x.hidden = x !== v);
@@ -441,11 +442,16 @@
   (async function start() {
     USER = await auth.user();
     if (!USER) { location.replace('login.html'); return; }
-    const roles = rolesOf(USER), isAdmin = roles.includes('admin'), isTeacher = isAdmin || roles.includes('teacher');
-    if (page === 'teacher' && !isTeacher) { location.replace('student.html'); return; }
-    if (page === 'student' && isTeacher) { location.replace('teacher.html'); return; }
+    const roles = rolesOf(USER), isAdmin = roles.includes('admin'), isTeacher = isAdmin || roles.includes('teacher'), isClinic = isAdmin || roles.includes('clinic');
+    if (page === 'teacher' && !isTeacher && !isClinic) { location.replace('student.html'); return; }
+    if (page === 'student' && (isTeacher || isClinic)) { location.replace('teacher.html'); return; }
+    if (page === 'teacher') {   /* show only the screens this account may use */
+      const can = k => k === 'bookings' ? isClinic : isTeacher;
+      ALLOWED = views.map(x => x.id.slice(5)).filter(can);
+      navLinks.forEach(a => { if (!can(a.dataset.view)) a.hidden = true; });
+    }
     const name = nameOf(USER), level = ['b1', 'b2', 'c1'].find(l => roles.includes(l));
-    document.getElementById('me').innerHTML = `<span class="avatar${isTeacher ? ' c3' : ''}">${esc(initials(name))}</span><div><b>${esc(name)}</b><span>${isTeacher ? (isAdmin ? L('Administrator', 'Администратор', 'Admin') : L('Oʻqituvchi', 'Преподаватель', 'Teacher')) : 'Medical English' + (level ? ' · ' + level.toUpperCase() : '')}</span></div><a href="login.html" data-logout aria-label="Log out">${I('logout')}</a>`;
+    document.getElementById('me').innerHTML = `<span class="avatar${isTeacher ? ' c3' : ''}">${esc(initials(name))}</span><div><b>${esc(name)}</b><span>${isTeacher || isClinic ? (isAdmin ? L('Administrator', 'Администратор', 'Admin') : isTeacher ? L('Oʻqituvchi', 'Преподаватель', 'Teacher') : L('Klinika', 'Клиника', 'Clinic')) : 'Medical English' + (level ? ' · ' + level.toUpperCase() : '')}</span></div><a href="login.html" data-logout aria-label="Log out">${I('logout')}</a>`;
     document.querySelectorAll('#me [data-logout]').forEach(a => a.addEventListener('click', async e => { e.preventDefault(); await auth.logout(); location.replace('login.html'); }));
     const last = (() => { try { return JSON.parse(localStorage.getItem('shifo-last-' + page) || 'null'); } catch (e) { return null; } })();
     const rerender = (...keys) => keys.forEach(k => { rendered[k] = false; const v = document.getElementById('view-' + k); if (v && !v.hidden && RENDER[k]) { rendered[k] = true; RENDER[k](v); } });
@@ -625,7 +631,7 @@
     }
 
     /* ---------------- TEACHER / ADMIN ---------------- */
-    if (page === 'teacher') {
+    if (page === 'teacher' && isTeacher) {
       let roster = null, board = null;
       const getRoster = async () => roster || (roster = (await fn('students')).students);
       const getBoard = async (fresh) => (!fresh && board) || (board = await api('board'));
@@ -878,6 +884,108 @@
       }
 
       RENDER.course = v => renderCourse(v, { level: (last && last.level) || level || 'b1', edition: (last && last.edition) || 'teacher' });
+    }
+
+    /* ---------------- CLINIC BOOKINGS (admin / clinic) ---------------- */
+    if (page === 'teacher' && isClinic) {
+      const clinicApi = (action, o = {}) => api(action, { ...o, path: '/api/clinic' });
+      const CN = { whatsapp: 'WhatsApp', telegram: 'Telegram', zoom: 'Zoom', teams: 'Teams' };
+      const COND = { t1: L('1-tip diabet', 'Диабет 1 типа', 'Type 1'), t2: L('2-tip diabet', 'Диабет 2 типа', 'Type 2'), pre: L('Prediabet', 'Преддиабет', 'Prediabetes'), preg: L('Homiladorlikda', 'При беременности', 'In pregnancy'), unsure: L('Bilmaydi', 'Не знает', 'Not sure') };
+      const ST = { booked: `<span class="tag warn">${L('Yangi', 'Новая', 'New')}</span>`, confirmed: `<span class="tag">${I('check')}${L('Tasdiqlangan', 'Подтверждена', 'Confirmed')}</span>`, done: `<span class="tag grey">${L('Oʻtkazildi', 'Проведена', 'Done')}</span>`, cancelled: `<span class="tag bad">${L('Bekor qilindi', 'Отменена', 'Cancelled')}</span>` };
+      const myTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ''; } })();
+      let B = null, SET = null, tab = 'upcoming';
+      const contactLink = b => {
+        const d = (b.contactDetail || '').trim(), num = (d.replace(/\D/g, '').length >= 7 ? d : b.phone).replace(/\D/g, '');
+        if (b.contact === 'whatsapp') return `https://wa.me/${num}`;
+        if (b.contact === 'telegram') return /^@?[A-Za-z][\w]{3,}$/.test(d) ? `https://t.me/${d.replace(/^@/, '')}` : `https://t.me/+${num}`;
+        return d ? `mailto:${d}` : `tel:${b.phone}`;
+      };
+      const setCount = () => document.querySelectorAll('[data-book-count]').forEach(c => { const n = B ? B.filter(b => b.status === 'booked' && Date.parse(b.start) > Date.now()).length : 0; c.textContent = n; c.hidden = !n; });
+      const loadB = async () => { const r = await clinicApi('bookings'); B = r.bookings; setCount(); return B; };
+      loadB().catch(() => {});
+      const tTime = (s, tz) => new Date(s).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(tz ? { timeZone: tz } : {}) });
+      const two = n => String(n).padStart(2, '0');
+
+      function detail(b, v) {
+        const d = new Date(b.start);
+        const p = openDrawer(`${dHead(esc(b.name), `${dayFmt(d)} · ${tTime(b.start)}${SET && myTz !== SET.tz ? ` (${L('Toshkent', 'Ташкент', 'Tashkent')} ${tTime(b.start, SET.tz)})` : ''}`)}
+          <div class="bk-d">
+            <p>${ST[b.status]}</p>
+            <dl class="kv">
+              <dt>${L('Telefon', 'Телефон', 'Phone')}</dt><dd><a class="link" href="tel:${esc(b.phone)}">${esc(b.phone)}</a></dd>
+              <dt>${L('Aloqa', 'Связь', 'Contact via')}</dt><dd><a class="btn btn-s btn-sm" href="${esc(contactLink(b))}" target="_blank" rel="noopener">${I('chat')}${CN[b.contact]}${b.contactDetail ? ' · ' + esc(b.contactDetail) : ''}</a></dd>
+              <dt>${L('Kim uchun', 'Для кого', 'For')}</dt><dd>${b.forWhom === 'family' ? L('Oila aʼzosi', 'Член семьи', 'A family member') : L('Oʻzi', 'Для себя', 'Themselves')}</dd>
+              <dt>${L('Holat', 'Ситуация', 'Situation')}</dt><dd>${COND[b.condition] || '—'}</dd>
+              <dt>${L('Til', 'Язык', 'Language')}</dt><dd>${esc((b.lang || '').toUpperCase())}</dd>
+              <dt>${L('Yozildi', 'Записан', 'Booked')}</dt><dd>${dayFmt(new Date(b.created))}</dd>
+            </dl>
+            ${b.note ? `<p class="lbl">${L('Bemor izohi', 'Комментарий пациента', 'Patient’s note')}</p><div class="task">${pre(b.note)}</div>` : ''}
+            <div class="bk-act">
+              ${b.status === 'booked' ? `<button type="button" class="btn btn-p btn-sm" data-st="confirmed">${I('check')}${L('Tasdiqlash', 'Подтвердить', 'Confirm')}</button>` : ''}
+              ${['booked', 'confirmed'].includes(b.status) ? `<button type="button" class="btn btn-s btn-sm" data-st="done">${L('Oʻtkazildi', 'Проведена', 'Mark done')}</button><button type="button" class="btn btn-s btn-sm" data-move>${I('calendar')}${L('Koʻchirish', 'Перенести', 'Move')}</button><button type="button" class="btn btn-s btn-sm danger" data-st="cancelled">${I('x')}${L('Bekor qilish', 'Отменить', 'Cancel')}</button>` : ''}
+              ${b.status === 'cancelled' ? `<button type="button" class="btn btn-s btn-sm" data-st="booked">${L('Tiklash', 'Восстановить', 'Restore')}</button>` : ''}
+            </div>
+            <form id="move-form" hidden><div class="row2"><label>${L('Yangi sana', 'Новая дата', 'New date')}<input type="date" name="date" required value="${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}"></label><label>${L('Vaqt (sizning vaqtingiz)', 'Время (ваше)', 'Time (your time)')}<input type="time" name="time" required value="${two(d.getHours())}:${two(d.getMinutes())}"></label></div><button class="btn btn-p btn-sm" type="submit">${L('Koʻchirish', 'Перенести', 'Move')}</button></form>
+            <form id="note-form"><label>${L('Ichki izoh (bemor koʻrmaydi)', 'Внутренняя заметка (пациент не видит)', 'Staff note (patient doesn’t see it)')}<textarea name="note" maxlength="2000">${esc(b.staffNote || '')}</textarea></label><button class="btn btn-s btn-sm" type="submit">${L('Saqlash', 'Сохранить', 'Save note')}</button></form>
+            <p class="form-msg" id="bk-msg"></p>
+          </div>`);
+        const m = p.querySelector('#bk-msg'), sayE = e => { m.innerHTML = e && e.code === 'slot_gone' ? L('Bu vaqt band.', 'Это время занято.', 'That time is taken.') : errMsg(e); m.className = 'form-msg err'; };
+        const upd = async body => { const r = await clinicApi('update', { body: { id: b.id, ...body } }); const i = B.findIndex(x => x.id === b.id); B[i] = r.booking; setCount(); rendered.bookings = false; RENDER.bookings(v); return r.booking; };
+        p.querySelectorAll('[data-st]').forEach(x => x.addEventListener('click', async () => {
+          if (x.dataset.st === 'cancelled' && !x.dataset.sure) { x.dataset.sure = 1; x.innerHTML = `${I('x')}${L('Ha, bekor qilish', 'Да, отменить', 'Yes, cancel')}`; return; }
+          try { const nb = await upd({ status: x.dataset.st }); detail(nb, v); toast(L('Saqlandi.', 'Сохранено.', 'Saved.')); } catch (e) { sayE(e); }
+        }));
+        const mf = p.querySelector('#move-form');
+        p.querySelectorAll('[data-move]').forEach(x => x.addEventListener('click', () => { mf.hidden = false; mf.date.focus(); }));
+        mf.addEventListener('submit', async e => { e.preventDefault(); const t = new Date(`${mf.date.value}T${mf.time.value}`); if (isNaN(t)) return; try { const nb = await upd({ start: t.toISOString() }); detail(nb, v); toast(L('Koʻchirildi. Bemorga xabar bering.', 'Перенесено. Сообщите пациенту.', 'Moved. Let the patient know.')); } catch (err) { sayE(err); } });
+        p.querySelector('#note-form').addEventListener('submit', async e => { e.preventDefault(); try { await upd({ staffNote: e.target.note.value }); toast(L('Izoh saqlandi.', 'Заметка сохранена.', 'Note saved.')); } catch (err) { sayE(err); } });
+      }
+
+      RENDER.bookings = async v => {
+        v.innerHTML = loading;
+        try { await Promise.all([loadB(), clinicApi('settings').then(r => { SET = r.settings; })]); } catch (e) { v.innerHTML = failed(e); return; }
+        const now = Date.now(), up = B.filter(b => Date.parse(b.start) + b.minutes * 60000 > now && b.status !== 'cancelled'), past = B.filter(b => !up.includes(b)).reverse();
+        const today = new Date().toDateString(), weekEnd = now + 7 * 864e5;
+        const row = b => { const d = new Date(b.start); return `<li class="click" data-bk="${esc(b.id)}" tabindex="0">${dateBlock(d)}<div class="what"><b>${tTime(b.start)} · ${esc(b.name)}</b><span>${CN[b.contact]} · ${esc(b.phone)}${b.forWhom === 'family' ? ' · ' + L('oila aʼzosi', 'член семьи', 'family member') : ''}${b.condition ? ' · ' + (COND[b.condition] || '') : ''}</span></div>${ST[b.status]}</li>`; };
+        const tabs = [['upcoming', L('Kelgusi', 'Предстоящие', 'Upcoming') + ` · ${up.length}`], ['past', L('Oʻtgan va bekor qilingan', 'Прошедшие и отменённые', 'Past and cancelled')], ['hours', L('Ish vaqti', 'Часы работы', 'Working hours')]];
+        let body = '';
+        if (tab === 'upcoming') body = up.length ? `<div class="card"><ul class="list">${up.map(row).join('')}</ul></div>` : `<div class="card"><h3>${L('Hozircha yozilishlar yoʻq', 'Пока нет записей', 'No bookings yet')}</h3><p class="muted" style="margin-top:8px">${L('Bemorlar “Konsultatsiyaga yozilish” sahifasida vaqt tanlaganda shu yerda koʻrinadi.', 'Записи появятся здесь, когда пациенты выберут время на странице записи.', 'Bookings appear here when patients pick a time on the booking page.')} <a class="link" href="book.html" target="_blank">book.html</a></p></div>`;
+        if (tab === 'past') body = past.length ? `<div class="card"><ul class="list">${past.slice(0, 100).map(row).join('')}</ul></div>` : `<div class="card muted">${L('Hali yoʻq.', 'Пока нет.', 'Nothing yet.')}</div>`;
+        if (tab === 'hours') {
+          const DN = [[1, L('Dushanba', 'Понедельник', 'Monday')], [2, L('Seshanba', 'Вторник', 'Tuesday')], [3, L('Chorshanba', 'Среда', 'Wednesday')], [4, L('Payshanba', 'Четверг', 'Thursday')], [5, L('Juma', 'Пятница', 'Friday')], [6, L('Shanba', 'Суббота', 'Saturday')], [7, L('Yakshanba', 'Воскресенье', 'Sunday')]];
+          body = `<form class="card hours" id="hours-form">
+            <p class="muted">${L(`Barcha vaqtlar ${esc(SET.tz)} boʻyicha.`, `Всё время указано по ${esc(SET.tz)}.`, `All times are ${esc(SET.tz)} time.`)}</p>
+            <div class="hours-grid">${DN.map(([n, t]) => { const r = (SET.week[n] || [])[0]; return `<div class="hrow"><label class="check"><input type="checkbox" name="on${n}" ${r ? 'checked' : ''}><span>${t}</span></label><input type="time" name="from${n}" value="${r ? r[0] : '10:00'}"><span class="muted">–</span><input type="time" name="to${n}" value="${r ? r[1] : '17:00'}"></div>`; }).join('')}</div>
+            <div class="row2"><label>${L('Konsultatsiya davomiyligi', 'Длительность консультации', 'Consultation length')}<select name="minutes">${[30, 45, 60, 90].map(m => `<option value="${m}"${SET.minutes === m ? ' selected' : ''}>${m} min</option>`).join('')}</select></label>
+            <label>${L('Oraliq tanaffus', 'Перерыв между', 'Break between')}<select name="gap">${[0, 5, 10, 15, 30].map(m => `<option value="${m}"${SET.gap === m ? ' selected' : ''}>${m} min</option>`).join('')}</select></label></div>
+            <div class="row2"><label>${L('Kamida necha soat oldin yozilish', 'Запись минимум за (часов)', 'Book at least (hours ahead)')}<input type="number" name="notice" min="0" max="72" value="${SET.noticeHours}"></label>
+            <label>${L('Necha kun oldinga koʻrsatish', 'Показывать дней вперёд', 'Show days ahead')}<input type="number" name="horizon" min="7" max="60" value="${SET.horizonDays}"></label></div>
+            <div><p class="lbl">${L('Dam olish kunlari', 'Выходные дни', 'Days off')}</p><div class="offs" id="offs">${SET.off.filter(d => d >= new Date().toISOString().slice(0, 10)).map(d => `<span class="tag grey" data-off="${d}">${d} <button type="button" aria-label="Remove">${I('x')}</button></span>`).join('')}</div>
+              <div class="off-add"><input type="date" id="off-new"><button type="button" class="btn btn-s btn-sm" id="off-add">${L('Qoʻshish', 'Добавить', 'Add day off')}</button></div></div>
+            <p class="form-msg" id="hours-msg"></p>
+            <button class="btn btn-p" type="submit">${I('check')}${L('Saqlash', 'Сохранить', 'Save hours')}</button>
+          </form>`;
+        }
+        const nb = up.filter(b => b.status === 'booked').length, td = up.filter(b => new Date(b.start).toDateString() === today).length, wk = up.filter(b => Date.parse(b.start) < weekEnd).length;
+        v.innerHTML = `<div class="grid g3"><div class="card kpi"><p class="k">${I('alert')}${L('Yangi (tasdiqlanmagan)', 'Новые (не подтверждены)', 'New, to confirm')}</p><b>${nb}</b></div><div class="card kpi"><p class="k">${I('clock')}${L('Bugun', 'Сегодня', 'Today')}</p><b>${td}</b></div><div class="card kpi"><p class="k">${I('calendar')}${L('7 kun ichida', 'За 7 дней', 'Next 7 days')}</p><b>${wk}</b></div></div>
+          <div class="mini-tabs" role="tablist" style="margin-top:18px">${tabs.map(([k, t]) => `<button type="button" role="tab" data-btab="${k}" aria-selected="${k === tab}">${t}</button>`).join('')}</div>
+          <div id="bk-body">${body}</div>`;
+        v.querySelectorAll('[data-btab]').forEach(x => x.addEventListener('click', () => { tab = x.dataset.btab; RENDER.bookings(v); }));
+        v.querySelectorAll('[data-bk]').forEach(li => { const go = () => detail(B.find(b => b.id === li.dataset.bk), v); li.addEventListener('click', go); li.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); });
+        const hf = v.querySelector('#hours-form');
+        if (hf) {
+          const offs = new Set(SET.off);
+          const drawOff = () => { v.querySelector('#offs').innerHTML = [...offs].filter(d => d >= new Date().toISOString().slice(0, 10)).sort().map(d => `<span class="tag grey" data-off="${d}">${d} <button type="button" aria-label="Remove">${I('x')}</button></span>`).join(''); v.querySelectorAll('[data-off] button').forEach(b => b.addEventListener('click', () => { offs.delete(b.parentElement.dataset.off); drawOff(); })); };
+          drawOff();
+          v.querySelector('#off-add').addEventListener('click', () => { const d = v.querySelector('#off-new').value; if (d) { offs.add(d); drawOff(); } });
+          hf.addEventListener('submit', async e => {
+            e.preventDefault(); const f = e.target, week = {};
+            for (let n = 1; n <= 7; n++) week[n] = f['on' + n].checked ? [[f['from' + n].value, f['to' + n].value]] : [];
+            try { const r = await clinicApi('settings', { body: { settings: { ...SET, week, minutes: +f.minutes.value, gap: +f.gap.value, noticeHours: +f.notice.value, horizonDays: +f.horizon.value, off: [...offs] } } }); SET = r.settings; toast(L('Ish vaqti saqlandi. Bron sahifasi yangilandi.', 'Часы сохранены. Страница записи обновлена.', 'Hours saved. The booking page now uses them.')); }
+            catch (err) { const m = v.querySelector('#hours-msg'); m.innerHTML = errMsg(err); m.className = 'form-msg err'; }
+          });
+        }
+      };
     }
 
     window.addEventListener('hashchange', route);

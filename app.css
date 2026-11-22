@@ -384,3 +384,22 @@ details.tx summary{cursor:pointer;font-weight:600;color:var(--garnet)}
   .tabbar a span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .room-tools{width:100%;justify-content:flex-end}
 }
+/* ---------- Clinic bookings (admin) ---------- */
+.list li.click{cursor:pointer}
+.list li.click:focus-visible{outline:2px solid var(--garnet);outline-offset:-2px}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:10px 14px;margin:16px 0;align-items:center}
+.kv dt{color:var(--muted);font-size:.9rem}
+.kv dd{margin:0}
+.bk-act{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.btn.danger{color:var(--bad)}
+#move-form,#note-form{display:grid;gap:10px;margin-top:14px}
+.hours{display:grid;gap:18px}
+.hours-grid{display:grid;gap:8px}
+.hrow{display:grid;grid-template-columns:170px 120px auto 120px;gap:10px;align-items:center}
+.hrow input[type=time]{margin:0}
+.offs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.offs .tag button{border:0;background:none;padding:0 0 0 4px;cursor:pointer;color:inherit;display:inline-flex}
+.offs .tag .ic{width:14px;height:14px}
+.off-add{display:flex;gap:8px;align-items:center}
+.off-add input{margin:0;max-width:200px}
+@media (max-width:640px){.hrow{grid-template-columns:1fr 1fr;}.hrow .check{grid-column:1 / -1}.hrow > .muted{display:none}.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
