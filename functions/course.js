@@ -15,7 +15,7 @@ exports.handler = async (event, context) => {
   if (!user) return json(401, { error: 'not_logged_in' });
 
   const roles = ((user.app_metadata && user.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-  const isTeacher = roles.includes('teacher');
+  const isTeacher = roles.includes('teacher') || roles.includes('admin');
   const own = LEVELS.filter(l => roles.includes(l));
   const q = event.queryStringParameters || {};
 

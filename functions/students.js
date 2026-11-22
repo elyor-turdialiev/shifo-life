@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
   const user = context.clientContext && context.clientContext.user;
   if (!user) return json(401, { error: 'not_logged_in' });
   const roles = ((user.app_metadata && user.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-  if (!roles.includes('teacher')) return json(403, { error: 'teachers_only' });
+  if (!roles.includes('teacher') && !roles.includes('admin')) return json(403, { error: 'teachers_only' });
 
   const identity = context.clientContext.identity;
   if (!identity || !identity.url || !identity.token) return json(500, { error: 'identity_unavailable' });
@@ -23,6 +23,7 @@ exports.handler = async (event, context) => {
       .map(u => {
         const r = ((u.app_metadata && u.app_metadata.roles) || []).map(x => String(x).toLowerCase().trim());
         return {
+          id: u.id,
           name: (u.user_metadata && u.user_metadata.full_name) || '',
           email: u.email,
           level: ['b1', 'b2', 'c1'].find(l => r.includes(l)) || '',
