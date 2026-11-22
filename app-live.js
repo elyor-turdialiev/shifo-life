@@ -196,6 +196,11 @@
           const r = await fn('course', { level, edition, section: id });
           const s = r.section;
           box.innerHTML = `<article class="card book"><p class="muted" style="font-size:.88rem;font-weight:600">${s.week ? L(s.week + '-hafta', 'Неделя ' + s.week, 'Week ' + s.week) + ' · ' + L(`${s.week * 3 - 2}–${s.week * 3}-darslar`, `Уроки ${s.week * 3 - 2}–${s.week * 3}`, `Lessons ${s.week * 3 - 2}–${s.week * 3}`) : 'Medical English · ' + level.toUpperCase()}</p><h2>${esc(s.title)}</h2>${s.html}</article>`;
+          box.querySelectorAll('li.todo').forEach((li, i) => {   // "This week I can" lists: real tick boxes, remembered on this device
+            const key = `shifo-todo-${level}-${edition}-${id}-${i}`; let on = false; try { on = localStorage.getItem(key) === '1'; } catch (e) {}
+            li.innerHTML = `<label class="todo-l"><input type="checkbox"${on ? ' checked' : ''}><span>${li.innerHTML.replace(/^\s*☐\s*/, '')}</span></label>`;
+            li.querySelector('input').addEventListener('change', e => { try { localStorage.setItem(key, e.target.checked ? '1' : '0'); } catch (err) {} });
+          });
           if (window.innerWidth < 900) box.scrollIntoView({ behavior: 'smooth' });
         } catch (e) { box.innerHTML = failed(e); }
       };
@@ -966,10 +971,11 @@
         if (tab === 'upcoming') body = up.length ? `<div class="card"><ul class="list">${up.map(row).join('')}</ul></div>` : `<div class="card"><h3>${L('Hozircha yozilishlar yoʻq', 'Пока нет записей', 'No bookings yet')}</h3><p class="muted" style="margin-top:8px">${L('Bemorlar “Konsultatsiyaga yozilish” sahifasida vaqt tanlaganda shu yerda koʻrinadi.', 'Записи появятся здесь, когда пациенты выберут время на странице записи.', 'Bookings appear here when patients pick a time on the booking page.')} <a class="link" href="book.html" target="_blank">book.html</a></p></div>`;
         if (tab === 'past') body = past.length ? `<div class="card"><ul class="list">${past.slice(0, 100).map(row).join('')}</ul></div>` : `<div class="card muted">${L('Hali yoʻq.', 'Пока нет.', 'Nothing yet.')}</div>`;
         if (tab === 'hours') {
+          const hhmm = cur => { const o = []; for (let m = 0; m < 1440; m += 30) o.push(`${String(m / 60 | 0).padStart(2, '0')}:${m % 60 ? '30' : '00'}`); if (!o.includes(cur)) o.push(cur); return o.sort().map(t => `<option${t === cur ? ' selected' : ''}>${t}</option>`).join(''); };
           const DN = [[1, L('Dushanba', 'Понедельник', 'Monday')], [2, L('Seshanba', 'Вторник', 'Tuesday')], [3, L('Chorshanba', 'Среда', 'Wednesday')], [4, L('Payshanba', 'Четверг', 'Thursday')], [5, L('Juma', 'Пятница', 'Friday')], [6, L('Shanba', 'Суббота', 'Saturday')], [7, L('Yakshanba', 'Воскресенье', 'Sunday')]];
           body = `<form class="card hours" id="hours-form">
             <p class="muted">${L(`Barcha vaqtlar ${esc(SET.tz)} boʻyicha.`, `Всё время указано по ${esc(SET.tz)}.`, `All times are ${esc(SET.tz)} time.`)}</p>
-            <div class="hours-grid">${DN.map(([n, t]) => { const r = (SET.week[n] || [])[0]; return `<div class="hrow"><label class="check"><input type="checkbox" name="on${n}" ${r ? 'checked' : ''}><span>${t}</span></label><input type="time" name="from${n}" value="${r ? r[0] : '10:00'}"><span class="muted">–</span><input type="time" name="to${n}" value="${r ? r[1] : '17:00'}"></div>`; }).join('')}</div>
+            <div class="hours-grid">${DN.map(([n, t]) => { const r = (SET.week[n] || [])[0]; return `<div class="hrow"><label class="check"><input type="checkbox" name="on${n}" ${r ? 'checked' : ''}><span>${t}</span></label><select name="from${n}" aria-label="From">${hhmm(r ? r[0] : '10:00')}</select><span class="muted">–</span><select name="to${n}" aria-label="To">${hhmm(r ? r[1] : '17:00')}</select></div>`; }).join('')}</div>
             <div class="row2"><label>${L('Konsultatsiya davomiyligi', 'Длительность консультации', 'Consultation length')}<select name="minutes">${[30, 45, 60, 90].map(m => `<option value="${m}"${SET.minutes === m ? ' selected' : ''}>${m} min</option>`).join('')}</select></label>
             <label>${L('Oraliq tanaffus', 'Перерыв между', 'Break between')}<select name="gap">${[0, 5, 10, 15, 30].map(m => `<option value="${m}"${SET.gap === m ? ' selected' : ''}>${m} min</option>`).join('')}</select></label></div>
             <div class="row2"><label>${L('Kamida necha soat oldin yozilish', 'Запись минимум за (часов)', 'Book at least (hours ahead)')}<input type="number" name="notice" min="0" max="72" value="${SET.noticeHours}"></label>
@@ -995,6 +1001,7 @@
           hf.addEventListener('submit', async e => {
             e.preventDefault(); const f = e.target, week = {};
             for (let n = 1; n <= 7; n++) week[n] = f['on' + n].checked ? [[f['from' + n].value, f['to' + n].value]] : [];
+            if (Object.values(week).some(r => r.length && r[0][0] >= r[0][1])) { const m = v.querySelector('#hours-msg'); m.innerHTML = L('Tugash vaqti boshlanishdan keyin boʻlishi kerak.', 'Время окончания должно быть позже начала.', 'The end time must be after the start time.'); m.className = 'form-msg err'; return; }
             try { const r = await clinicApi('settings', { body: { settings: { ...SET, week, minutes: +f.minutes.value, gap: +f.gap.value, noticeHours: +f.notice.value, horizonDays: +f.horizon.value, off: [...offs] } } }); SET = r.settings; toast(L('Ish vaqti saqlandi. Bron sahifasi yangilandi.', 'Часы сохранены. Страница записи обновлена.', 'Hours saved. The booking page now uses them.')); }
             catch (err) { const m = v.querySelector('#hours-msg'); m.innerHTML = errMsg(err); m.className = 'form-msg err'; }
           });

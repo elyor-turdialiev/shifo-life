@@ -347,7 +347,7 @@ body{font-stretch:125%}
 .book-facts{list-style:none;padding:0;margin:22px 0 0;display:flex;flex-wrap:wrap;gap:10px 22px}
 .book-facts li{display:flex;align-items:center;gap:8px;font-weight:500;color:var(--ink);font-size:.95rem}
 .book-facts .ic{width:18px;height:18px;color:var(--garnet)}
-.book{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+#book{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
 .book-main{display:grid;gap:20px;min-width:0}
 .bstep{padding:28px}
 .bstep-h{display:flex;align-items:center;gap:12px;margin-bottom:6px}
@@ -391,7 +391,7 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 .done-ico .ic{width:32px;height:32px}
 .book-done .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 @media (max-width:900px){
-  .book{grid-template-columns:minmax(0,1fr)}
+  #book{grid-template-columns:minmax(0,1fr)}
   .book-sum{position:static;order:2}
   .seg4{grid-template-columns:repeat(2,1fr)}
 }
