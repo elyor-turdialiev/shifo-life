@@ -169,6 +169,49 @@
     ? L('Akkauntingizga hali daraja biriktirilmagan. Shifo Academy bilan bogʻlaning.', 'К вашему аккаунту ещё не привязан уровень. Свяжитесь с Shifo Academy.', 'Your account doesn’t have a level yet. Please contact Shifo Academy.')
     : L('Yuklab boʻlmadi. Sahifani yangilang.', 'Не удалось загрузить. Обновите страницу.', 'Couldn’t load this. Refresh the page.')}</span></p></div>`;
 
+  /* the book's lessons (homework, grammar, check questions) and the signed-in student's check results */
+  const BOOKL = {};
+  const bookLessons = (level, student) => {
+    const k = level + '|' + (student || '');
+    if (!BOOKL[k]) BOOKL[k] = api('lessons', { params: { level, ...(student ? { student } : {}) } }).catch(e => { delete BOOKL[k]; throw e; });
+    return BOOKL[k];
+  };
+  /* one lesson check in the side panel: answer, mark on the server, see what was right */
+  function runCheck(level, l, done) {
+    const kind = q => q.k === 'gap' ? L('Gapni toʻldiring', 'Заполните пропуск', 'Complete the sentence') : q.k === 'def' ? L('Qaysi soʻz shu maʼnoni bildiradi?', 'Какое слово это означает?', 'Which word or phrase means this?') : `${L('Grammatika', 'Грамматика', 'Grammar')} · ${L(`${q.unit}-boʻlim`, `Раздел ${q.unit}`, `Unit ${q.unit}`)}`;
+    const gapHtml = t => esc(t).replace('_____', '<span class="gap">_____</span>');
+    const qHtml = (q, i) => `<fieldset class="ck-q" data-i="${i}"><legend><span class="ck-k">${i + 1} · ${kind(q)}</span><span class="ck-p">${q.k === 'def' ? `“${esc(q.p)}”` : gapHtml(q.p)}</span></legend>
+      ${q.k === 'gram' ? `<input name="q${i}" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="80" aria-label="Answer ${i + 1}">`
+        : `<div class="ck-o">${q.o.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}"><span>${esc(o)}</span></label>`).join('')}</div>`}</fieldset>`;
+    const p = openDrawer(`${dHead(esc(l.title), `${L(`${l.n}-dars`, `Урок ${l.n}`, `Lesson ${l.n}`)} · ${level.toUpperCase()} · ${l.review ? L('takrorlash', 'повторение', 'review') : L('tekshiruv', 'проверка', 'check')}`)}
+      <form class="ck" novalidate>${l.q.map(qHtml).join('')}<p class="form-msg"></p><div class="ck-end"><button class="btn btn-p" type="submit">${I('check')}${L('Javoblarni tekshirish', 'Проверить ответы', 'Check my answers')}</button></div></form>`);
+    p.classList.add('wide');
+    const f = p.querySelector('form');
+    f.addEventListener('submit', async e => {
+      e.preventDefault();
+      const answers = l.q.map((q, i) => q.k === 'gram' ? (f[`q${i}`].value || '').trim() : (f.querySelector(`[name=q${i}]:checked`) || {}).value);
+      const miss = l.q.findIndex((q, i) => q.k !== 'gram' && answers[i] == null);
+      const msg = f.querySelector('.form-msg');
+      if (miss >= 0) { msg.innerHTML = L('Har bir savolga javob bering.', 'Ответьте на каждый вопрос.', 'Please answer every question.'); msg.className = 'form-msg err'; f.querySelectorAll('.ck-q')[miss].scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      const btn = f.querySelector('[type=submit]'); btn.disabled = true; msg.innerHTML = ''; msg.className = 'form-msg';
+      let r; try { r = await api('check', { body: { level, n: l.n, answers: answers.map((a, i) => l.q[i].k === 'gram' ? a : +a) } }); } catch (err) { msg.innerHTML = errMsg(err); msg.className = 'form-msg err'; btn.disabled = false; return; }
+      f.querySelectorAll('input').forEach(x => { x.disabled = true; });
+      l.q.forEach((q, i) => {
+        const fs = f.querySelector(`.ck-q[data-i="${i}"]`); fs.classList.add(r.right[i] ? 'ok' : 'bad');
+        if (q.k === 'gram') { if (!r.right[i]) fs.insertAdjacentHTML('beforeend', `<p class="ck-ans">${L('Toʻgʻri javob', 'Правильный ответ', 'Answer')}: <b>${esc(r.key[i].join(' / '))}</b></p>`); }
+        else fs.querySelectorAll('.ck-o label').forEach((lb, j) => { if (j === r.key[i]) lb.classList.add('right'); else if (lb.querySelector('input').checked) lb.classList.add('wrong'); });
+      });
+      const pct = r.score / r.total, word = pct === 1 ? L('Aʼlo! Hammasi toʻgʻri.', 'Отлично! Всё верно.', 'Excellent, all correct!') : pct >= .7 ? L('Yaxshi natija.', 'Хороший результат.', 'Good work.') : L('Xatolarni koʻrib chiqing va qayta urinib koʻring.', 'Посмотрите ошибки и попробуйте ещё раз.', 'Look at the corrections, then try again.');
+      f.insertAdjacentHTML('afterbegin', `<div class="ck-score top"><b>${r.score}/${r.total}</b><span>${word}</span></div>`);
+      f.querySelector('.ck-end').innerHTML = `<div class="ck-score"><b>${r.score}/${r.total}</b><span>${word}${r.result && r.result.tries > 1 ? ` ${L('Eng yaxshi natija', 'Лучший результат', 'Best so far')}: ${r.result.best}/${r.total}.` : ''}${isTeacherPage ? ` <span class="muted">${L('(Oʻqituvchi sinovi saqlanmaydi.)', '(Попытка преподавателя не сохраняется.)', '(Teacher tries are not saved.)')}</span>` : ''}</span></div>
+        <button type="button" class="btn btn-s" data-again>${L('Qayta urinish', 'Ещё раз', 'Try again')}</button>`;
+      f.querySelector('[data-again]').addEventListener('click', () => runCheck(level, l, done));
+      p.scrollTop = 0;
+      done(r.result);
+    });
+  }
+  const isTeacherPage = page === 'teacher';
+
   /* course reader (shared) */
   async function renderCourse(v, opts) {
     v.innerHTML = loading;
@@ -183,12 +226,13 @@
       const tools = isT ? `<div class="toolbar" style="margin-bottom:16px">
           <div class="mini-tabs" role="tablist" style="margin:0">${list.levels.map(l => `<button type="button" role="tab" data-lv="${l}" aria-selected="${l === level}">${l.toUpperCase()}</button>`).join('')}</div>
           <div class="mini-tabs" role="tablist" style="margin:0"><button type="button" role="tab" data-ed="student" aria-selected="${edition === 'student'}">${L('Talaba kitobi', 'Книга студента', 'Student Edition')}</button><button type="button" role="tab" data-ed="teacher" aria-selected="${edition === 'teacher'}">${L('Oʻqituvchi kitobi', 'Книга преподавателя', 'Teacher Edition')}</button></div></div>` : '';
-      const lab = s => s.id === 'intro' ? L('Kirish', 'Введение', 'Introduction') : s.id === 'progress' ? L('Natijalarim', 'Мой прогресс', 'My progress') : esc(s.title);
-      const items = list.sections.map(s => `<li><button type="button" data-sec="${esc(s.id)}" aria-current="${s.id === sel}"><span class="n">${s.week || (s.id === 'intro' ? I('book') : I('chart'))}</span><span class="t">${lab(s)}</span></button></li>`).join('');
+      const lab = s => s.id === 'intro' ? L('Kirish', 'Введение', 'Introduction') : s.id === 'progress' ? L('Natijalarim', 'Мой прогресс', 'My progress') : s.id === 'grammar' ? L('Grammatika qoʻllanmasi', 'Грамматика', 'Grammar Handbook') : s.id === 'vocab' ? L('Lugʻat kitobi', 'Словарь', 'Vocabulary Book') : esc(s.title);
+      const ico = { intro: 'book', progress: 'chart', grammar: 'cap', vocab: 'chat' };
+      const items = list.sections.map(s => `<li${s.id === 'grammar' ? ' class="wl-sep"' : ''}><button type="button" data-sec="${esc(s.id)}" aria-current="${s.id === sel}"><span class="n">${s.week || I(ico[s.id] || 'book')}</span><span class="t">${lab(s)}</span></button></li>`).join('');
       v.innerHTML = `${tools}<div class="grid g12" style="align-items:start">
         <div class="card"><div class="card-h"><h3>Medical English · ${level.toUpperCase()}</h3><span class="tag rose">${edition === 'teacher' ? L('Oʻqituvchi', 'Преподаватель', 'Teacher') : L('Talaba', 'Студент', 'Student')}</span></div><ul class="weeklist">${items}</ul></div>
         <div id="sec-body">${loading}</div></div>`;
-      const open = async id => {
+      const open = async (id, anchor) => {
         sel = id; try { localStorage.setItem(lastKey, id); localStorage.setItem('shifo-last-' + page, JSON.stringify({ level, edition, id })); } catch (e) {}
         v.querySelectorAll('[data-sec]').forEach(b => b.setAttribute('aria-current', b.dataset.sec === id));
         const box = v.querySelector('#sec-body'); box.innerHTML = loading;
@@ -201,8 +245,37 @@
             li.innerHTML = `<label class="todo-l"><input type="checkbox"${on ? ' checked' : ''}><span>${li.innerHTML.replace(/^\s*☐\s*/, '')}</span></label>`;
             li.querySelector('input').addEventListener('change', e => { try { localStorage.setItem(key, e.target.checked ? '1' : '0'); } catch (err) {} });
           });
-          if (window.innerWidth < 900) box.scrollIntoView({ behavior: 'smooth' });
+          if (s.week) lessonTasks(box, s.week);
+          const target = anchor && box.querySelector('#' + anchor);
+          if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); target.classList.add('flash'); setTimeout(() => target.classList.remove('flash'), 1600); }
+          else if (window.innerWidth < 900) box.scrollIntoView({ behavior: 'smooth' });
         } catch (e) { box.innerHTML = failed(e); }
+      };
+      /* tasks for the week's 3 lessons: homework from the book, grammar links and the auto-marked check */
+      const lessonTasks = async (box, week) => {
+        const wrap = document.createElement('section'); wrap.className = 'ltasks'; wrap.id = 'tasks';
+        wrap.innerHTML = `<h3>${L('Dars vazifalari', 'Задания к урокам', 'Lesson tasks')}</h3>${loading}`;
+        box.appendChild(wrap);
+        const head = box.querySelector('article.book > p.muted');
+        if (head) head.insertAdjacentHTML('beforeend', ` · <a class="link" href="#tasks" data-jump>${L('Vazifalarga oʻtish', 'К заданиям', 'Go to the tasks')} ↓</a>`);
+        box.querySelectorAll('[data-jump]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+        let B; try { B = await bookLessons(level); } catch (e) { wrap.innerHTML = failed(e); return; }
+        const ls = B.lessons.filter(l => l.week === week);
+        const badge = l => { const c = B.checks[`${B.level}-${l.n}`]; return c ? `<span class="tag ${c.best === c.total ? '' : 'grey'}" title="${c.tries}">${I('star')}${c.best}/${c.total}</span>` : ''; };
+        const card = l => `<article class="lt">
+            <p class="lt-n">${L(`${l.n}-dars`, `Урок ${l.n}`, `Lesson ${l.n}`)} · ${esc(l.type)}</p>
+            <h4>${esc(l.title)}</h4>
+            ${l.cando ? `<p class="lt-can">${L('Bu darsdan keyin:', 'После урока я могу:', 'After this lesson I can:')} ${esc(l.cando)}</p>` : ''}
+            <div class="lt-hw"><b>${I('edit')}${L('Uy vazifasi', 'Домашнее задание', 'Homework')}</b><p>${esc(l.hw)}</p></div>
+            ${l.units.length ? `<div class="lt-gram"><span class="lt-gl">${I('cap')}${L('Grammatika', 'Грамматика', 'Grammar')}</span>${l.units.map(u => `<button type="button" class="lt-chip" data-unit="${u.n}" title="${esc(u.title)}"><span>${u.n} · ${esc(u.title.replace(/\s*\(.*\)$/, ''))}</span></button>`).join('')}</div>` : ''}
+            <div class="lt-row"><button type="button" class="btn btn-p btn-sm" data-check="${l.n}">${I('check')}${l.review ? L('Takrorlash testi', 'Повторение', 'Review check') : L('Oʻzimni tekshirish', 'Проверить себя', 'Check yourself')} · ${l.q.length}</button><span data-badge="${l.n}">${badge(l)}</span></div>
+          </article>`;
+        wrap.innerHTML = `<h3>${L('Dars vazifalari', 'Задания к урокам', 'Lesson tasks')}</h3><p class="muted">${isT ? L('Talabalar har darsdan keyin qisqa testni bajaradi; natija sizga koʻrinadi.', 'После каждого урока студенты проходят короткую проверку; результат виден вам.', 'After each lesson students take a short check; you see their results.') : L('Har darsdan keyin: uy vazifasini bajaring va qisqa testni toping. Eng yaxshi natijangiz saqlanadi.', 'После каждого урока: сделайте домашнее задание и пройдите короткую проверку. Лучший результат сохраняется.', 'After each lesson: do the homework and take the short check. Your best score is saved.')}</p><div class="lt-grid">${ls.map(card).join('')}</div>`;
+        wrap.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => open('grammar', 'unit-' + b.dataset.unit)));
+        wrap.querySelectorAll('[data-check]').forEach(b => b.addEventListener('click', () => {
+          const l = ls.find(x => x.n === +b.dataset.check);
+          runCheck(B.level, l, res => { if (res) { B.checks[`${B.level}-${l.n}`] = res; const el = wrap.querySelector(`[data-badge="${l.n}"]`); if (el) el.innerHTML = badge(l); } });
+        }));
       };
       v.querySelectorAll('[data-sec]').forEach(b => b.addEventListener('click', () => open(b.dataset.sec)));
       v.querySelectorAll('[data-lv]').forEach(b => b.addEventListener('click', () => { level = b.dataset.lv; draw(); }));
@@ -755,8 +828,22 @@
         let tab = studentPage.tab || 'lessons';
         const draw = () => {
           studentPage.tab = tab;
-          const tabs = [['lessons', L('Darslar', 'Занятия', 'Lessons')], ['homework', L('Uy vazifasi', 'Домашка', 'Homework')], ['speaking', L('Nutq', 'Разговор', 'Speaking')]].concat(isAdmin ? [['payments', L('Toʻlovlar', 'Оплаты', 'Payments')]] : []);
+          const tabs = [['lessons', L('Darslar', 'Занятия', 'Lessons')], ['homework', L('Uy vazifasi', 'Домашка', 'Homework')], ['checks', L('Testlar', 'Проверки', 'Checks')], ['speaking', L('Nutq', 'Разговор', 'Speaking')]].concat(isAdmin ? [['payments', L('Toʻlovlar', 'Оплаты', 'Payments')]] : []);
           let body = '';
+          const slv = s.level || 'b1';
+          if (tab === 'checks') {
+            if (!S.book) { body = loading; bookLessons(slv).then(r => { S.book = r; }, e => { S.book = { error: e }; }).then(() => { if (studentPage.tab === 'checks' && v.isConnected) draw(); }); }
+            else if (S.book.error) body = failed(S.book.error);
+            else {
+              const C = S.checks || {}, done = S.book.lessons.filter(l => C[`${slv}-${l.n}`]);
+              const avg = done.length ? Math.round(done.reduce((a, l) => { const c = C[`${slv}-${l.n}`]; return a + c.best / c.total; }, 0) / done.length * 100) : null;
+              const row = l => { const c = C[`${slv}-${l.n}`]; return `<tr><td><b>${l.n}</b></td><td>${esc(l.title)}<br><span class="muted" style="font-size:.85rem">${L(`${l.week}-hafta`, `Неделя ${l.week}`, `Week ${l.week}`)} · ${esc(l.type)}</span></td><td>${c ? `<span class="tag ${c.best === c.total ? '' : c.best / c.total >= .7 ? 'grey' : 'warn'}">${c.best}/${c.total}</span>` : '<span class="muted">—</span>'}</td><td>${c ? c.tries : ''}</td><td>${c ? dayFmt(new Date(c.at)) : ''}</td></tr>`; };
+              body = `<div class="grid g3"><div class="card kpi"><p class="k">${I('check')}${L('Bajarilgan testlar', 'Пройдено проверок', 'Checks done')}</p><b>${done.length}<small>/${S.book.lessons.length}</small></b></div>
+                <div class="card kpi"><p class="k">${I('star')}${L('Oʻrtacha natija', 'Средний результат', 'Average best score')}</p><b>${avg == null ? '—' : avg + '%'}</b></div>
+                <div class="card kpi"><p class="k">${I('book')}${L('Daraja', 'Уровень', 'Level')}</p><b>${slv.toUpperCase()}</b></div></div>
+                <div class="card" style="margin-top:18px;padding:8px 12px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>${L('Dars', 'Урок', 'Lesson')}</th><th>${L('Eng yaxshi', 'Лучший', 'Best')}</th><th>${L('Urinish', 'Попыток', 'Tries')}</th><th>${L('Oxirgi', 'Последняя', 'Last')}</th></tr></thead><tbody>${S.book.lessons.map(row).join('')}</tbody></table></div></div>`;
+            }
+          }
           if (tab === 'speaking') {
             if (!S.speak) { body = loading; speakApi('list', { params: { student: s.id } }).then(r => { S.speak = r; }, e => { S.speak = { error: e }; }).then(() => { if (studentPage.tab === 'speaking' && v.isConnected) draw(); }); }
             else if (S.speak.error) body = failed(S.speak.error);
@@ -781,7 +868,7 @@
               <div><b>${esc(h.title)}</b><span class="meta">${dueText(h)}</span></div>
               <div class="hw-act">${HWTAG[st]}${st !== 'todo' ? `<button type="button" class="btn ${st === 'in' ? 'btn-p' : 'btn-s'} btn-sm" data-rv-hw="${esc(h.id)}">${st === 'in' ? L('Tekshirish', 'Проверить', 'Review') : L('Izohni oʻzgartirish', 'Изменить отзыв', 'Edit feedback')}</button>` : ''}<button type="button" class="icon-btn" data-edit-hw="${esc(h.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-hw="${esc(h.id)}" aria-label="Delete">${I('x')}</button></div>
               ${h.text ? `<div class="task">${pre(h.text)}</div>` : ''}${answerHtml(h)}${reviewHtml(h)}</div>`; };
-            body = `<div class="toolbar"><p class="muted" style="align-self:center">${L('Vazifa ixtiyoriy: kerak boʻlsa qoʻshing.', 'Задание необязательно: добавьте, если нужно.', 'Homework is optional: add it when you need it.')}</p><button type="button" class="btn btn-p btn-sm" data-add-hw>${I('edit')}${L('Vazifa qoʻshish', 'Добавить задание', 'Add homework')}</button></div>
+            body = `<div class="toolbar"><p class="muted" style="align-self:center">${L('Vazifa ixtiyoriy: kerak boʻlsa qoʻshing.', 'Задание необязательно: добавьте, если нужно.', 'Homework is optional: add it when you need it.')}</p><div class="btn-row"><button type="button" class="btn btn-p btn-sm" data-book-hw>${I('book')}${L('Kitobdan', 'Из книги', 'From the book')}</button><button type="button" class="btn btn-s btn-sm" data-add-hw>${I('edit')}${L('Oʻz vazifangiz', 'Своё задание', 'Write your own')}</button></div></div>
               <div class="hw">${S.homework.map(card).join('') || `<div class="card muted">${L('Bu talabaga hali vazifa berilmagan.', 'Этому студенту ещё не задано заданий.', 'No homework set for this student yet.')}</div>`}</div>`;
           }
           if (tab === 'payments') {
@@ -860,6 +947,29 @@
             });
           };
           q('[data-add-hw]').forEach(b => b.addEventListener('click', () => hwForm(null)));
+          /* one-click homework from the book: the lesson's task, plus a reminder to take its check */
+          q('[data-book-hw]').forEach(b => b.addEventListener('click', async () => {
+            const slv = s.level || 'b1';
+            let B; try { B = S.book && !S.book.error ? S.book : (S.book = await bookLessons(slv)); } catch (e) { toast(errMsg(e)); return; }
+            const has = n => S.homework.some(h => h.book === `${slv}-${n}`);
+            const item = l => `<li class="bk-l"><div><b>${L(`${l.n}-dars`, `Урок ${l.n}`, `Lesson ${l.n}`)} · ${esc(l.title)}</b><span>${esc(l.hw)}</span></div>
+              <button type="button" class="btn ${has(l.n) ? 'btn-s' : 'btn-p'} btn-sm" data-assign="${l.n}"${has(l.n) ? ' disabled' : ''}>${has(l.n) ? I('check') + L('Berilgan', 'Задано', 'Set') : L('Berish', 'Задать', 'Set')}</button></li>`;
+            const weeks = [...new Set(B.lessons.map(l => l.week))];
+            const p = openDrawer(`${dHead(L('Kitobdan vazifa', 'Задание из книги', 'Homework from the book'), esc(s.name || s.email) + ' · ' + slv.toUpperCase())}
+              <p class="muted" style="margin-bottom:14px">${L('Har bir dars uchun kitobdagi vazifa. “Berish” bosilsa, talaba uni darhol koʻradi.', 'Задание из книги для каждого урока. Нажмите «Задать», и студент сразу его увидит.', 'The book’s homework for every lesson. Press “Set” and the student sees it straight away.')}</p>
+              ${weeks.map(w => `<h4 class="bk-w">${L(`${w}-hafta`, `Неделя ${w}`, `Week ${w}`)}</h4><ul class="bk-list">${B.lessons.filter(l => l.week === w).map(item).join('')}</ul>`).join('')}`);
+            p.classList.add('wide');
+            const next = B.lessons.find(l => !has(l.n)); const nb = next && p.querySelector(`[data-assign="${next.n}"]`); if (nb) setTimeout(() => nb.scrollIntoView({ block: 'center' }), 50);
+            p.querySelectorAll('[data-assign]').forEach(btn => btn.addEventListener('click', async () => {
+              const l = B.lessons.find(x => x.n === +btn.dataset.assign); btn.disabled = true;
+              const lines = [l.hw];
+              if (l.units.length) lines.push('Grammar: ' + l.units.map(u => `Unit ${u.n} · ${u.title}`).join('; ') + ' (Grammar Handbook).');
+              lines.push(`Then take the Lesson ${l.n} check on your Course page (${l.q.length} questions).`);
+              try { const r = await api('hw-save', { body: { student: s.id, homework: { title: `Lesson ${l.n} · ${l.title}`, text: lines.join('\n\n'), due: '', book: `${slv}-${l.n}` } } });
+                S.homework = r.homework; btn.className = 'btn btn-s btn-sm'; btn.innerHTML = I('check') + L('Berilgan', 'Задано', 'Set'); board = null; draw(); toast(L('Vazifa berildi.', 'Задание отправлено.', 'Homework set.')); }
+              catch (e) { btn.disabled = false; toast(errMsg(e)); }
+            }));
+          }));
           q('[data-edit-hw]').forEach(b => b.addEventListener('click', () => hwForm(S.homework.find(x => x.id === b.dataset.editHw))));
           q('[data-del-hw]').forEach(b => b.addEventListener('click', async () => {
             if (!confirmTwice(b)) return;
