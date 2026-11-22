@@ -81,12 +81,10 @@
             <label><span data-l="uz">Ism va familiya</span><span data-l="ru">Имя и фамилия</span><span data-l="en">Full name</span><input name="name" autocomplete="name" required maxlength="100"></label>
             <label><span data-l="uz">Telefon</span><span data-l="ru">Телефон</span><span data-l="en">Phone</span><input name="phone" type="tel" autocomplete="tel" required placeholder="+998 __ ___ __ __" maxlength="30"></label>
           </div>
-          <fieldset class="contact-pick"><legend><span data-l="uz">Siz bilan qanday bogʻlanaylik?</span><span data-l="ru">Как с вами связаться?</span><span data-l="en">How should we reach you?</span></legend>
-            <div class="seg4"><label><input type="radio" name="contact" value="whatsapp" checked><span>WhatsApp</span></label><label><input type="radio" name="contact" value="telegram"><span>Telegram</span></label><label><input type="radio" name="contact" value="zoom"><span>Zoom</span></label><label><input type="radio" name="contact" value="teams"><span>Microsoft Teams</span></label></div>
-          </fieldset>
+          <label><span data-l="uz">Siz bilan qanday bogʻlanaylik?</span><span data-l="ru">Как с вами связаться?</span><span data-l="en">How should we reach you?</span><select name="contact"><option value="telegram">Telegram</option><option value="whatsapp">WhatsApp</option><option value="zoom">Zoom</option><option value="teams">Microsoft Teams</option></select></label>
           <label id="detail-field">
-            <span data-for="whatsapp"><span data-l="uz">Boshqa WhatsApp raqami (ixtiyoriy)</span><span data-l="ru">Другой номер WhatsApp (необязательно)</span><span data-l="en">Different WhatsApp number (optional)</span></span>
-            <span data-for="telegram" hidden><span data-l="uz">Telegram username yoki raqam (ixtiyoriy)</span><span data-l="ru">Telegram username или номер (необязательно)</span><span data-l="en">Telegram username or number (optional)</span></span>
+            <span data-for="whatsapp" hidden><span data-l="uz">Boshqa WhatsApp raqami (ixtiyoriy)</span><span data-l="ru">Другой номер WhatsApp (необязательно)</span><span data-l="en">Different WhatsApp number (optional)</span></span>
+            <span data-for="telegram"><span data-l="uz">Telegram username yoki raqam (ixtiyoriy)</span><span data-l="ru">Telegram username или номер (необязательно)</span><span data-l="en">Telegram username or number (optional)</span></span>
             <span data-for="zoom teams" hidden><span data-l="uz">Taklif uchun email</span><span data-l="ru">Email для приглашения</span><span data-l="en">Email for the invitation</span></span>
             <input name="contactDetail" maxlength="120" autocomplete="off">
           </label>

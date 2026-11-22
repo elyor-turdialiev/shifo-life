@@ -56,14 +56,14 @@
     $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes)}<p class="muted small">${DATA.minutes} ${L('daqiqa', 'минут', 'min')} · ${NAMES[c]}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;
     btn.disabled = !pick;
   }
-  form.querySelectorAll('[name=contact]').forEach(r => r.addEventListener('change', () => {
+  const onContact = () => {
     const c = form.contact.value;
     $('#detail-field').querySelectorAll('[data-for]').forEach(s => { s.hidden = !s.dataset.for.split(' ').includes(c); });
     const inp = form.contactDetail; inp.type = c === 'zoom' || c === 'teams' ? 'email' : 'text'; inp.required = inp.type === 'email';
     inp.placeholder = c === 'telegram' ? '@username' : c === 'whatsapp' ? '+998' : 'name@example.com';
     summary();
-  }));
-  form.contactDetail.placeholder = '+998';
+  };
+  form.contact.addEventListener('change', onContact); onContact();
 
   form.addEventListener('submit', async e => {
     e.preventDefault();

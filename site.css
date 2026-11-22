@@ -43,7 +43,7 @@ ul,ol{margin:0}
 .ic{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* Text inside language spans follows its parent */
-span[data-l]{font-size:inherit !important;color:inherit !important;font-weight:inherit !important;margin:0 !important;display:inline !important;background:none !important;padding:0 !important}
+span[data-l]{font-size:inherit !important;color:inherit !important;font-weight:inherit !important;margin:0 !important;display:inline !important;background:none !important;padding:0 !important;border:0 !important;border-radius:0 !important}
 
 /* Language visibility */
 html[lang="uz"] [data-l]:not([data-l="uz"]),

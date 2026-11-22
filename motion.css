@@ -374,9 +374,9 @@ body{font-stretch:125%}
 .seg2{grid-template-columns:repeat(2,1fr)}
 .seg4 label,.seg2 label{position:relative;margin:0;cursor:pointer}
 .seg4 input,.seg2 input{position:absolute;opacity:0;pointer-events:none}
-.seg4 span,.seg2 span{display:block;text-align:center;padding:12px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;font-weight:500;color:var(--ink);font-size:.92rem}
-.seg4 input:checked + span,.seg2 input:checked + span{border-color:var(--garnet);background:var(--rose);color:var(--garnet)}
-.seg4 input:focus-visible + span,.seg2 input:focus-visible + span{outline:2px solid var(--garnet);outline-offset:2px}
+.seg2 > label > span{display:block;text-align:center;padding:12px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;font-weight:500;color:var(--ink);font-size:.92rem}
+.seg2 input:checked + span{border-color:var(--garnet);background:var(--rose);color:var(--garnet)}
+.seg2 input:focus-visible + span{outline:2px solid var(--garnet);outline-offset:2px}
 label.check{display:flex;gap:12px;align-items:flex-start;font-weight:400;font-size:.92rem;line-height:1.5;color:var(--text)}
 label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--garnet)}
 .book-sum{position:sticky;top:150px;padding:26px;display:grid;gap:14px}
