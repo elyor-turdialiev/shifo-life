@@ -55,7 +55,7 @@
   <div class="wrap" style="padding-top:64px;padding-bottom:28px">
     <p class="pill"><svg aria-hidden="true"><use href="#mark"/></svg>Shifo Clinic</p>
     <h1 class="h1" style="margin-top:18px"><span data-l="uz">Onlayn konsultatsiyaga yozilish</span><span data-l="ru">Запись на онлайн-консультацию</span><span data-l="en">Book an online consultation</span></h1>
-    <p class="lede" style="margin-top:16px;max-width:52ch"><span data-l="uz">Qandli diabet boʻyicha jamoamiz bilan 45 daqiqalik video-qoʻngʻiroq. Oila aʼzolaringiz ham qatnashishi mumkin.</span><span data-l="ru">45-минутный видеозвонок с нашей командой по диабету. Члены семьи могут присоединиться.</span><span data-l="en">A 45-minute video call about diabetes with our team. Family members are welcome to join.</span></p>
+    <p class="lede" style="margin-top:16px;max-width:62ch"><span data-l="uz">Qandli diabet boʻyicha jamoamiz bilan 45 daqiqalik video-qoʻngʻiroq.<br>Oila aʼzolaringiz ham qatnashishi mumkin.</span><span data-l="ru">45-минутный видеозвонок с нашей командой по диабету.<br>Члены семьи могут присоединиться.</span><span data-l="en">A 45-minute video call about diabetes with our team.<br>Family members are welcome to join.</span></p>
   </div>
 </div>
 
@@ -64,11 +64,10 @@
     <div class="book" id="book" aria-live="polite">
       <div class="book-main">
         <div class="card bstep" id="step-time">
-          <div class="bstep-h"><span class="n">1</span><h2><span data-l="uz">Vaqtni tanlang</span><span data-l="ru">Выберите время</span><span data-l="en">Choose a time</span></h2></div>
+          <div class="bstep-h"><span class="n">1</span><h2><span data-l="uz">Vaqtni tanlang</span><span data-l="ru">Выберите время</span><span data-l="en">Choose a time</span></h2><label class="tz-pick"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><span class="sr"><span data-l="uz">Vaqt mintaqasi</span><span data-l="ru">Часовой пояс</span><span data-l="en">Time zone</span></span><select id="tz"></select></label></div>
           <div class="cal-h"><p class="cal-m" id="cal-month"></p><div class="cal-nav"><button type="button" id="cal-prev" aria-label="Previous week"><svg class="ic" aria-hidden="true"><use href="#i-arrowl"/></svg></button><button type="button" id="cal-next" aria-label="Next week"><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button></div></div>
           <div class="days" id="days" role="tablist" aria-label="Days"><p class="muted"><span data-l="uz">Yuklanmoqda…</span><span data-l="ru">Загрузка…</span><span data-l="en">Loading…</span></p></div>
           <div class="times" id="times"></div>
-          <p class="muted small tz-note" id="tz-note" hidden></p>
         </div>
 
         <form class="card bstep" id="step-details" novalidate>

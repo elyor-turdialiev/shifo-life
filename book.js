@@ -38,7 +38,26 @@
   const form = $('#step-details'), msg = $('#book-msg'), btn = $('#book-btn');
   let DATA = null, byDay = {}, day = null, pick = null, week = null;
   const say = (html, cls) => { msg.innerHTML = html; msg.className = 'form-msg ' + (cls || ''); };
-  const sameZone = () => !myTz || !DATA || myTz === DATA.tz;
+  const ZONES = [
+    ['Asia/Tashkent', 'Toshkent', 'Ташкент', 'Tashkent'], ['Asia/Almaty', 'Olmaota', 'Алматы', 'Almaty'], ['Europe/Moscow', 'Moskva', 'Москва', 'Moscow'],
+    ['Europe/Istanbul', 'Istanbul', 'Стамбул', 'Istanbul'], ['Asia/Dubai', 'Dubay', 'Дубай', 'Dubai'], ['Europe/Riga', 'Riga', 'Рига', 'Riga'],
+    ['Europe/Berlin', 'Berlin', 'Берлин', 'Berlin'], ['Europe/London', 'London', 'Лондон', 'London'], ['Asia/Seoul', 'Seul', 'Сеул', 'Seoul'],
+    ['America/New_York', 'Nyu-York', 'Нью-Йорк', 'New York'], ['America/Chicago', 'Chikago', 'Чикаго', 'Chicago'],
+    ['America/Denver', 'Denver', 'Денвер', 'Denver'], ['America/Los_Angeles', 'Los-Anjeles', 'Лос-Анджелес', 'Los Angeles']
+  ];
+  let viewTz = 'Asia/Tashkent';
+  try { if (myTz) { new Intl.DateTimeFormat('en', { timeZone: myTz }); viewTz = myTz; } } catch (e) {}
+  const sameZone = () => !DATA || viewTz === DATA.tz;
+  const offset = tz => { try { return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(new Date()).find(x => x.type === 'timeZoneName').value; } catch (e) { return ''; } };
+  const slotDay = s => new Intl.DateTimeFormat('en-CA', { timeZone: viewTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(s));
+  const hm = (d, tz = viewTz) => d.toLocaleTimeString('en-GB', { ...HM, timeZone: tz });
+  (function zonePicker() {
+    const sel = $('#tz'); if (!sel) return;
+    const list = ZONES.some(z => z[0] === viewTz) ? ZONES : [[viewTz, ...Array(3).fill(viewTz.split('/').pop().replace(/_/g, ' '))], ...ZONES];
+    const lang = ['uz', 'ru', 'en'].includes(document.documentElement.lang) ? document.documentElement.lang : 'uz';
+    sel.innerHTML = list.map(([v, uz, ru, en]) => { const o = offset(v), t = c => esc(o ? `${c} (${o})` : c); return `<option value="${esc(v)}" data-uz="${t(uz)}" data-ru="${t(ru)}" data-en="${t(en)}"${v === viewTz ? ' selected' : ''}>${t({ uz, ru, en }[lang])}</option>`; }).join('');
+    sel.addEventListener('change', () => { viewTz = sel.value; group(true); });
+  })();
 
   async function load(keepDay) {
     try {
@@ -46,14 +65,16 @@
       DATA = await r.json(); if (!r.ok || !Array.isArray(DATA.slots)) throw new Error();
     } catch (e) { $('#days').innerHTML = `<p class="form-msg err">${ERR.server}</p>`; return; }
     document.querySelectorAll('[data-len]').forEach(x => { x.textContent = DATA.minutes; });
+    group(keepDay);
+  }
+  function group(keepDay) {
     byDay = {};
-    DATA.slots.forEach(s => { const d = new Date(s); (byDay[dayKey(d)] = byDay[dayKey(d)] || []).push(s); });
+    DATA.slots.forEach(s => { const k = slotDay(s); (byDay[k] = byDay[k] || []).push(s); });
     const keys = Object.keys(byDay).sort();
-    const tzn = $('#tz-note'); tzn.hidden = sameZone();
-    if (!sameZone()) { const city = esc(myTz.split('/').pop().replace(/_/g, ' ')); tzn.innerHTML = L(`Vaqtlar sizning vaqtingizda (${city}).`, `Время указано по вашему часовому поясу (${city}).`, `Times are in your time zone (${city}).`); }
+    if (pick && !DATA.slots.includes(pick)) pick = null;
+    if (pick) day = slotDay(pick);
     if (!keys.length) { $('.cal-h').hidden = true; $('#days').innerHTML = `<p class="muted">${L('Hozircha boʻsh vaqt yoʻq. Iltimos, bizga yozing.', 'Сейчас нет свободного времени. Пожалуйста, напишите нам.', 'No free times right now. Please write to us.')} <a class="link" href="contact.html#clinic">${L('Bogʻlanish', 'Связаться', 'Contact us')}</a></p>`; $('#times').innerHTML = ''; return; }
     if (!keepDay || !byDay[day]) day = keys[0];
-    if (pick && !DATA.slots.includes(pick)) pick = null;
     week = monday(day);
     cal();
     times(); summary();
@@ -74,11 +95,11 @@
   $('#cal-prev').addEventListener('click', () => { week = addDays(week, -7); cal(); });
   $('#cal-next').addEventListener('click', () => { week = addDays(week, 7); cal(); });
   function times() {
-    $('#times').innerHTML = (byDay[day] || []).map(s => `<button type="button" data-t="${s}" aria-pressed="${s === pick}">${new Date(s).toLocaleTimeString('en-GB', HM)}</button>`).join('');
+    $('#times').innerHTML = (byDay[day] || []).map(s => `<button type="button" data-t="${s}" aria-pressed="${s === pick}">${hm(new Date(s))}</button>`).join('');
     $('#times').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { pick = b.dataset.t; $('#times').querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); summary(); say(''); if (window.innerWidth < 900) form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
   }
   const whenHtml = (s, mins, tz = true) => { const d = new Date(s);
-    return `<p class="d">${fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}</p><p class="t">${d.toLocaleTimeString('en-GB', HM)}–${new Date(d.getTime() + mins * 60000).toLocaleTimeString('en-GB', HM)}</p>${!tz || sameZone() ? '' : `<p class="muted small">${L('Toshkent vaqti', 'По Ташкенту', 'Tashkent time')}: ${d.toLocaleTimeString('en-GB', { ...HM, timeZone: DATA.tz })}</p>`}`; };
+    return `<p class="d">${fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }, viewTz)}</p><p class="t">${hm(d)}–${hm(new Date(d.getTime() + mins * 60000))}</p>${!tz || sameZone() ? '' : `<p class="muted small">${L('Toshkent vaqti', 'По Ташкенту', 'Tashkent time')}: ${hm(d, DATA.tz)}</p>`}`; };
   function summary() {
     const c = form.contact.value;
     $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes, false)}<p class="muted small">${L('Video-qoʻngʻiroq', 'Видеозвонок', 'Video call')} · ${NAMES[c]}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;

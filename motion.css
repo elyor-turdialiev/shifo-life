@@ -425,3 +425,9 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 #step-details .row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media (max-width:640px){#step-details .row2{grid-template-columns:minmax(0,1fr)}.days{gap:4px}.days button b{font-size:1.1rem}}
 #detail-field[hidden]{display:none}
+.bstep-h{flex-wrap:wrap}
+.tz-pick{margin:0 0 0 auto;display:flex;align-items:center;gap:8px;font-weight:400}
+.tz-pick .ic{width:18px;height:18px;color:var(--garnet);flex:none}
+.tz-pick select{width:auto;max-width:230px;padding:8px 34px 8px 12px;font-size:.88rem;border-radius:999px;min-height:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:640px){.tz-pick{margin:10px 0 0;width:100%}.tz-pick select{flex:1;max-width:none}}
