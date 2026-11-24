@@ -469,3 +469,27 @@ details.tx summary{cursor:pointer;font-weight:600;color:var(--garnet)}
 .bk-l span{display:block;font-size:.86rem;color:var(--muted);line-height:1.45;margin-top:2px}
 .bk-l .btn{flex:none}
 @media (max-width:640px){.ck-o{grid-template-columns:minmax(0,1fr)}.lt-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* reviews in the student and admin areas */
+.rv-card .stars{font-size:1.2rem}
+.rv-text{margin:8px 0 12px;line-height:1.55;color:var(--text)}
+.rv-empty{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.rv-empty > div{flex:1;min-width:200px}
+.rv-empty h3{margin:0 0 2px}
+.rv-empty p{margin:0}
+.rv-row{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+.rv-row:first-of-type{border-top:0}
+.rv-row .stars{margin-right:8px}
+.rv-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex:none}
+.rv-stars{border:0;padding:0;margin:0}
+.rv-stars legend{font-weight:500;margin-bottom:6px;color:var(--ink)}
+.rv-stars div{display:inline-flex;flex-direction:row-reverse;gap:4px}
+.rv-stars input{position:absolute;opacity:0;pointer-events:none}
+.rv-stars label{font-size:2rem;line-height:1;color:#E5D9D9;cursor:pointer;margin:0}
+.rv-stars input:checked ~ label,.rv-stars label:hover,.rv-stars label:hover ~ label{color:#C9962B}
+.rv-stars input:focus-visible + label{outline:2px solid var(--garnet);outline-offset:2px;border-radius:4px}
+@media (max-width:640px){.rv-row{flex-direction:column}.rv-act{justify-content:flex-start}}
+/* small tab rows never push the page sideways: they wrap on phones */
+.mini-tabs{max-width:100%;flex-wrap:wrap}
+.mini-tabs button{white-space:nowrap}
+@media (max-width:520px){.mini-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));width:100%}.mini-tabs button{padding:8px 6px}}

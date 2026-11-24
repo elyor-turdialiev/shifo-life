@@ -3,9 +3,9 @@
 const CONFIG = {
   phone: "",      // e.g. "+998 90 123 45 67"
   telegram: "",   // username without @, e.g. "shifolife"
-  instagram: "",  // username without @
-  email: "",      // e.g. "hello@shifolife.com"
-  youtube: "",    // full URL of the Shifo Media channel
+  instagram: "shifolifetv",  // username without @ (Shifo Life TV)
+  email: "shifolifeus@gmail.com",
+  youtube: "https://www.youtube.com/@shifolifeuz",    // full URL of the Shifo Media channel
   podcast: ""     // full URL of the podcast (Spotify, Apple Podcasts…)
 };
 
@@ -162,8 +162,34 @@ const CONFIG = {
     if (CONFIG.youtube) link({ uz: 'YouTube’da koʻrish', ru: 'Смотреть на YouTube', en: 'Watch on YouTube' }, CONFIG.youtube);
     if (CONFIG.podcast) link({ uz: 'Podkastni tinglash', ru: 'Слушать подкаст', en: 'Listen to the podcast' }, CONFIG.podcast);
     if (CONFIG.telegram) link({ uz: 'Telegram kanal', ru: 'Telegram-канал', en: 'Telegram channel' }, 'https://t.me/' + CONFIG.telegram);
+    if (CONFIG.instagram) link({ uz: 'Shifo Life TV · Instagram', ru: 'Shifo Life TV · Instagram', en: 'Shifo Life TV on Instagram' }, 'https://instagram.com/' + CONFIG.instagram);
     if (!box.children.length) box.hidden = true;
     else document.querySelectorAll('[data-media-empty]').forEach(e => e.hidden = true);
+  });
+
+  /* ---------- YouTube: show a picture first, load the player only when pressed ---------- */
+  document.querySelectorAll('[data-yt]').forEach(box => {
+    const b = box.querySelector('.yt-play'); if (!b) return;
+    b.addEventListener('click', () => {
+      const f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + box.dataset.yt + '?autoplay=1&rel=0';
+      f.title = b.getAttribute('aria-label') || 'YouTube'; f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; f.allowFullscreen = true;
+      b.replaceWith(f);
+    });
+  });
+
+  /* ---------- Academy: published student reviews (the section stays hidden until there are some) ---------- */
+  document.querySelectorAll('[data-reviews]').forEach(sec => {
+    fetch('/api/academy?action=reviews').then(r => r.ok ? r.json() : null).then(d => {
+      const list = d && d.reviews || [];
+      if (!list.length) return;
+      const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const stars = n => '<span class="stars" aria-label="' + n + '/5">' + [1, 2, 3, 4, 5].map(i => '<i class="' + (i <= n ? 'on' : '') + '">★</i>').join('') + '</span>';
+      const avg = list.reduce((a, r) => a + r.stars, 0) / list.length;
+      sec.querySelector('[data-rv-sum]').innerHTML = '<b>' + avg.toFixed(1) + '</b>' + stars(Math.round(avg)) + '<span>' + list.length + '</span>';
+      sec.querySelector('[data-rv-list]').innerHTML = list.slice(0, 9).map(r => '<figure class="rv"><div>' + stars(r.stars) + '</div><blockquote>' + esc(r.text) + '</blockquote><figcaption><b>' + esc(r.name) + '</b>' + (r.level ? '<span>Medical English · ' + esc(r.level) + '</span>' : '') + '</figcaption></figure>').join('');
+      sec.hidden = false;
+    }).catch(() => {});
   });
 
   /* ---------- Contact form ---------- */

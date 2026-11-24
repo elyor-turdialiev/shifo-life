@@ -1,2 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /student.html
+Disallow: /teacher.html
+Disallow: /login.html
+
+Sitemap: https://shifo-life.netlify.app/sitemap.xml

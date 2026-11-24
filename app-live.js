@@ -211,6 +211,27 @@
     });
   }
   const isTeacherPage = page === 'teacher';
+  /* reviews: stars, the student's form, and the admin's list */
+  const starsHtml = n => `<span class="stars" aria-label="${n}/5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
+  function reviewForm(cur, name, done) {
+    const p = openDrawer(`${dHead(cur ? L('Fikringizni tahrirlash', 'Изменить отзыв', 'Edit your review') : L('Fikr qoldirish', 'Оставить отзыв', 'Write a review'), 'Shifo Academy')}
+      <form id="rv-form" novalidate>
+        <fieldset class="rv-stars"><legend>${L('Bahoingiz', 'Ваша оценка', 'Your rating')}</legend><div>${[5, 4, 3, 2, 1].map(i => `<input type="radio" name="stars" id="st${i}" value="${i}"${(cur ? cur.stars : 0) === i ? ' checked' : ''}><label for="st${i}" title="${i}">★</label>`).join('')}</div></fieldset>
+        <label>${L('Kurs haqida fikringiz', 'Ваш отзыв о курсе', 'What would you tell a friend about the course?')}<textarea name="text" rows="5" maxlength="800" required minlength="20">${esc(cur ? cur.text : '')}</textarea></label>
+        <label>${L('Ismingiz qanday koʻrsatilsin?', 'Как показать ваше имя?', 'How should your name appear?')}<select name="show"><option value="full"${cur && cur.show === 'first' ? '' : ' selected'}>${esc(name || '')}</option><option value="first"${cur && cur.show === 'first' ? ' selected' : ''}>${esc((name || '').split(/\s+/)[0] + ((name || '').split(/\s+/)[1] ? ' ' + name.split(/\s+/)[1][0] + '.' : ''))}</option></select></label>
+        <p class="muted" style="font-size:.88rem">${L('Fikringiz tekshirilgandan soʻng Academy sahifasida chiqadi.', 'Отзыв появится на странице Academy после проверки.', 'Your review appears on the Academy page after we approve it.')}</p>
+        <p class="form-msg"></p>
+        <button class="btn btn-p" type="submit">${I('check')}${L('Yuborish', 'Отправить', 'Send review')}</button>
+      </form>`);
+    p.querySelector('form').addEventListener('submit', async e => {
+      e.preventDefault(); const f = e.target, m = f.querySelector('.form-msg');
+      const stars = (f.querySelector('[name=stars]:checked') || {}).value, text = f.text.value.trim();
+      if (!stars || text.length < 20) { m.innerHTML = L('Baho tanlang va kamida 20 belgi yozing.', 'Выберите оценку и напишите хотя бы 20 символов.', 'Choose a rating and write at least 20 characters.'); m.className = 'form-msg err'; return; }
+      f.querySelector('[type=submit]').disabled = true;
+      try { const r = await api('review-save', { body: { stars: +stars, text, show: f.show.value } }); closeDrawer(); toast(L('Rahmat! Fikringiz yuborildi.', 'Спасибо! Отзыв отправлен.', 'Thank you! Your review was sent.')); done(r.review); }
+      catch (err) { m.innerHTML = errMsg(err); m.className = 'form-msg err'; f.querySelector('[type=submit]').disabled = false; }
+    });
+  }
 
   /* course reader (shared) */
   async function renderCourse(v, opts) {
@@ -327,6 +348,7 @@
     type: L('Faqat rasm yoki audio yuklash mumkin.', 'Можно загружать только фото или аудио.', 'Only photos and audio can be uploaded.'),
     reviewed: L('Bu vazifa allaqachon tekshirilgan.', 'Это задание уже проверено.', 'This homework has already been reviewed.'),
     empty: L('Javob yozing yoki fayl qoʻshing.', 'Напишите ответ или добавьте файл.', 'Write an answer or add a file.'),
+    review: L('Baho tanlang va kamida 20 belgi yozing.', 'Выберите оценку и напишите хотя бы 20 символов.', 'Choose a rating and write at least 20 characters.'),
     link: L('Havola https:// bilan boshlanishi kerak.', 'Ссылка должна начинаться с https://', 'The link must start with https://'),
     admin: L('Toʻlovlarni faqat administrator oʻzgartiradi.', 'Оплаты меняет только администратор.', 'Only the admin can change payments.'),
     daily_limit: L('Bugungi mashgʻulot bajarildi. Ertaga yana!', 'Сегодняшняя практика уже пройдена. До завтра!', 'You’ve done today’s practice. See you tomorrow!'),
@@ -575,7 +597,16 @@
           <div class="card"><div class="card-h"><h3>${L('Uy vazifasi', 'Домашнее задание', 'Homework')}</h3><a class="link" href="#homework">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
             ${todo.length ? todo.slice(0, 3).map(h => `<div class="hwi slim"><span class="ico">${I('edit')}</span><div><b>${esc(h.title)}</b><span class="meta">${dueText(h)}</span></div>${HWTAG.todo}</div>`).join('') : `<p class="muted">${L('Topshirilmagan vazifa yoʻq.', 'Несданных заданий нет.', 'Nothing to hand in.')}</p>`}
             ${fb ? `<p style="margin:18px 0 8px;font-weight:600;color:var(--ink);font-size:.95rem">${L('Oxirgi izoh', 'Последний отзыв', 'Latest feedback')}</p><div class="hwi slim"><span class="ico">${I('check')}</span><div><b>${esc(fb.title)}</b><span class="meta">${esc((fb.review.feedback || '').slice(0, 140))}</span></div>${fb.review.score ? `<span class="score">${fb.review.score}/10</span>` : ''}</div>` : ''}</div>
-        </div>`;
+        </div>
+        <div class="card rv-card" style="margin-top:18px" id="my-rv">${loading}</div>`;
+        const box = v.querySelector('#my-rv');
+        const paint = (r, nm) => {
+          box.innerHTML = r ? `<div class="card-h"><h3>${L('Sizning fikringiz', 'Ваш отзыв', 'Your review')}</h3><span class="tag ${r.ok ? '' : 'warn'}">${r.ok ? L('Chop etilgan', 'Опубликован', 'Published') : L('Tekshirilmoqda', 'На проверке', 'Waiting for approval')}</span></div>
+              ${starsHtml(r.stars)}<p class="rv-text">${pre(r.text)}</p><button type="button" class="btn btn-s btn-sm" data-rv-edit>${I('edit')}${L('Tahrirlash', 'Изменить', 'Edit')}</button>`
+            : `<div class="rv-empty"><span class="fi">${I('star')}</span><div><h3>${L('Kurs sizga yoqyaptimi?', 'Как вам курс?', 'How is your course going?')}</h3><p class="muted">${L('Fikringiz boshqa talabalarga tanlashda yordam beradi.', 'Ваш отзыв поможет другим студентам сделать выбор.', 'A short review helps other students decide.')}</p></div><button type="button" class="btn btn-p btn-sm" data-rv-edit>${I('star')}${L('Fikr qoldirish', 'Оставить отзыв', 'Write a review')}</button></div>`;
+          box.querySelector('[data-rv-edit]').addEventListener('click', () => reviewForm(r, nm || name, nr => paint(nr, nm)));
+        };
+        api('my-review').then(r => paint(r.review, r.name || name), () => { box.remove(); });
       };
 
       RENDER.course = v => renderCourse(v, { level, edition: 'student' });
@@ -775,6 +806,26 @@
           <div class="card"><div class="card-h"><h3>${L('Tekshirish kerak', 'Ждут проверки', 'To review')}</h3><a class="link" href="#review">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
             ${waiting.length ? waiting.slice(0, 4).map(h => `<div class="hwi slim"><span class="avatar sm">${esc(initials(who(h.student) || '?'))}</span><div><b>${esc(h.title)}</b><span class="meta">${esc(who(h.student))} · ${dayFmt(new Date(h.submission.at))}</span></div><button type="button" class="btn btn-p btn-sm" data-rv="${esc(h.student)}|${esc(h.id)}">${L('Tekshirish', 'Проверить', 'Review')}</button></div>`).join('') : `<p class="muted">${L('Hammasi tekshirildi.', 'Всё проверено.', 'All caught up.')}</p>`}</div>
         </div>`;
+        if (isAdmin) {
+          v.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:18px" id="rv-admin">${loading}</div>`);
+          const box = v.querySelector('#rv-admin');
+          const paint = list => {
+            const wait = list.filter(r => !r.ok).length;
+            box.innerHTML = `<div class="card-h"><h3>${L('Talabalar fikrlari', 'Отзывы студентов', 'Student reviews')}</h3>${wait ? `<span class="tag warn">${wait} ${L('kutmoqda', 'ждут', 'waiting')}</span>` : ''}</div>
+              <p class="muted" style="margin:-4px 0 12px;font-size:.9rem">${L('Chop etilgan fikrlar Academy sahifasida koʻrinadi.', 'Опубликованные отзывы видны на странице Academy.', 'Published reviews show on the Academy page.')}</p>
+              ${list.length ? list.map(r => `<div class="rv-row"><div>${starsHtml(r.stars)}<b>${esc(r.name)}</b> <span class="muted">· ${esc(r.level || '')} · ${dayFmt(new Date(r.at))}</span><p class="rv-text">${pre(r.text)}</p></div>
+                <div class="rv-act"><span class="tag ${r.ok ? '' : 'warn'}">${r.ok ? L('Chop etilgan', 'Опубликован', 'Published') : L('Kutmoqda', 'Ждёт', 'Waiting')}</span>
+                <button type="button" class="btn ${r.ok ? 'btn-s' : 'btn-p'} btn-sm" data-rv-ok="${esc(r.id)}" data-v="${r.ok ? '' : '1'}">${r.ok ? L('Yashirish', 'Скрыть', 'Hide') : L('Chop etish', 'Опубликовать', 'Publish')}</button>
+                <button type="button" class="btn btn-s btn-sm" data-rv-del="${esc(r.id)}">${L('Oʻchirish', 'Удалить', 'Delete')}</button></div></div>`).join('')
+                : `<p class="muted">${L('Hozircha fikrlar yoʻq. Talabalar oʻz sahifasida fikr qoldirishi mumkin.', 'Отзывов пока нет. Студенты оставляют их на своей странице.', 'No reviews yet. Students can write one from their overview page.')}</p>`}`;
+            box.querySelectorAll('[data-rv-ok]').forEach(b => b.addEventListener('click', async () => { b.disabled = true; try { paint((await api('review-mod', { body: { id: b.dataset.rvOk, ok: !!b.dataset.v } })).reviews); } catch (e) { toast(errMsg(e)); b.disabled = false; } }));
+            box.querySelectorAll('[data-rv-del]').forEach(b => b.addEventListener('click', async () => {
+              if (!b.dataset.sure) { b.dataset.sure = '1'; b.innerHTML = L('Ishonchingiz komilmi?', 'Точно удалить?', 'Sure? Tap again'); return; }
+              b.disabled = true; try { paint((await api('review-mod', { body: { id: b.dataset.rvDel, remove: true } })).reviews); } catch (e) { toast(errMsg(e)); b.disabled = false; }
+            }));
+          };
+          api('reviews-all').then(r => paint(r.reviews), e => { box.innerHTML = failed(e); });
+        }
         v.querySelectorAll('[data-rv]').forEach(b => b.addEventListener('click', () => { const [sid, id] = b.dataset.rv.split('|'); reviewDrawer(sid, board.review.find(h => h.student === sid && h.id === id), () => rerender('overview', 'review')); }));
       };
 
@@ -800,6 +851,12 @@
 
       /* students list + one student's page */
       let openStudent = null;
+      /* the Students item in the menu always leads back to the list */
+      document.querySelectorAll('a[data-view="students"]').forEach(a => a.addEventListener('click', () => {
+        if (!openStudent) return;
+        openStudent = null;
+        if (location.hash === '#students') rerender('students'); else rendered.students = false;
+      }));
       RENDER.students = async v => {
         v.innerHTML = loading;
         let r; try { r = await getRoster(); } catch (e) { v.innerHTML = failed(e); return; }

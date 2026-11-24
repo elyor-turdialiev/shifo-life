@@ -431,3 +431,74 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 .tz-pick select{width:auto;max-width:230px;padding:8px 34px 8px 12px;font-size:.88rem;border-radius:999px;min-height:0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (max-width:640px){.tz-pick{margin:10px 0 0;width:100%}.tz-pick select{flex:1;max-width:none}}
+
+/* About: the team */
+.team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:36px}
+.person{background:#fff;border-radius:22px;padding:26px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 1px 0 var(--line)}
+.p-ph{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--rose);color:var(--garnet);font-weight:600;font-size:1.15rem;font-stretch:135%;margin-bottom:10px}
+.person h3{font-size:1.15rem;margin:0}
+.person .p-role{margin:0;color:var(--garnet);font-size:.92rem;font-weight:500}
+.person .p-bio{margin:6px 0 0;color:var(--muted);font-size:.95rem;line-height:1.55}
+.person .p-ig{margin-top:auto;padding-top:12px}
+.p-ig{margin-top:10px;display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--garnet);text-decoration:none}
+.p-ig .ic{width:16px;height:16px}
+.p-ig:hover{text-decoration:underline}
+@media (max-width:900px){.team{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.team{grid-template-columns:minmax(0,1fr)}}
+/* Contact: who to call for each field */
+.routes li > div{flex:1;min-width:0}
+.r-tel{display:flex;align-items:center;gap:8px;text-decoration:none;text-align:right;color:var(--garnet);flex:none}
+.r-tel .ic{width:16px;height:16px}
+.r-tel span{display:grid}
+.r-tel em{color:var(--garnet);font-style:normal;font-weight:600;font-size:.95rem;font-stretch:125%;white-space:nowrap}
+.r-tel small{font-size:.78rem;color:var(--muted)}
+.routes .r-tel span{color:inherit;font-size:inherit}
+.r-tel:hover em{text-decoration:underline}
+@media (max-width:560px){.routes li{flex-wrap:wrap}.routes li > div{flex:1 1 calc(100% - 64px)}.r-tel{margin-left:58px;text-align:left}}
+.callus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.callus .pc{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:#fff;text-decoration:none}
+.callus .pc:hover{border-color:var(--garnet)}
+.callus .pc > .ic{width:20px;height:20px;color:var(--garnet);flex:none}
+.callus em{display:block;font-style:normal;font-weight:600;color:var(--garnet);font-stretch:125%;white-space:nowrap}
+.callus span{display:block;font-size:.84rem;color:var(--muted);line-height:1.35}
+@media (max-width:560px){.callus{grid-template-columns:minmax(0,1fr)}}
+
+/* Stars (reviews) */
+.stars{display:inline-flex;gap:2px;color:#E5D9D9;font-size:1.05rem;line-height:1}
+.stars i{font-style:normal}
+.stars i.on{color:#C9962B}
+/* Academy: reviews */
+.rv-sum{display:flex;align-items:center;gap:12px;margin:26px 0 20px}
+.rv-sum b{font-size:2.4rem;font-weight:600;color:var(--ink);font-stretch:135%;letter-spacing:-.03em}
+.rv-sum .stars{font-size:1.4rem}
+.rv-sum span:last-child{color:var(--muted)}
+.rv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.rv{margin:0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.rv blockquote{margin:0;color:var(--text);line-height:1.6;font-size:.98rem}
+.rv figcaption b{display:block;color:var(--ink)}
+.rv figcaption span{font-size:.85rem;color:var(--muted)}
+.rv-note{margin-top:22px}
+@media (max-width:900px){.rv-grid{grid-template-columns:minmax(0,1fr)}}
+/* Media: channels and video */
+.watch{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;margin-top:36px;align-items:start}
+.yt{display:grid;gap:12px}
+.yt-play,.yt iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:20px;overflow:hidden;display:block}
+.yt-play{position:relative;padding:0;cursor:pointer;background:#000}
+.yt-play img{width:100%;height:100%;object-fit:cover;opacity:.9;transition:opacity .2s}
+.yt-play:hover img{opacity:1}
+.yt-btn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;background:var(--garnet);display:grid;place-items:center;color:#fff;box-shadow:0 10px 30px -8px rgba(0,0,0,.5)}
+.yt-btn .ic{width:28px;height:28px;margin-left:4px;fill:#fff}
+.yt-t{margin:0;font-weight:500;color:var(--ink)}
+.yt-t span{color:var(--muted);font-weight:400}
+.chans{display:grid;gap:12px}
+.chan{display:flex;gap:14px;align-items:center;padding:18px;border-radius:18px;border:1px solid var(--line);background:#fff;text-decoration:none;color:var(--text)}
+.chan:hover{border-color:var(--garnet)}
+.chan > div{flex:1;min-width:0}
+.chan b{display:block;color:var(--ink)}
+.chan span{display:block;font-size:.9rem;color:var(--muted);line-height:1.45}
+.chan em{display:block;font-style:normal;font-size:.82rem;color:var(--garnet);margin-top:4px;overflow-wrap:anywhere}
+.chan > .ic{width:18px;height:18px;color:var(--garnet);flex:none}
+@media (max-width:900px){.watch{grid-template-columns:minmax(0,1fr)}}
+
+/* step lists on phones: every step fits on one row */
+@media (max-width:1000px){.stepper ol{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);overflow:visible}.stepper ol button{min-width:0;padding:10px 2px}}
