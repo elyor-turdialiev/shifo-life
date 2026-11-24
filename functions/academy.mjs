@@ -42,18 +42,28 @@ async function whoIs(req) {
     const u = await res.json();
     const roles = ((u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
     const admin = roles.includes('admin');
-    return { id: u.id, email: u.email, roles, admin, teacher: admin || roles.includes('teacher'), level: ['b1', 'b2', 'c1'].find(l => roles.includes(l)) || '' };
+    return { id: u.id, email: u.email, name: String((u.user_metadata && u.user_metadata.full_name) || '').trim(), roles, admin, teacher: admin || roles.includes('teacher'), level: ['b1', 'b2', 'c1'].find(l => roles.includes(l)) || '' };
   } catch (e) { return null; }
 }
 
-export default async (req) => {
-  const me = await whoIs(req);
-  if (!me) return fail(401, 'login');
+/* public list of published student reviews, for the Academy page */
+const shown = r => ({ name: r.name, level: r.level, stars: r.stars, text: r.text, at: r.at });
+const reviewName = (full, show) => { const p = String(full || '').trim().split(/\s+/).filter(Boolean); if (!p.length) return ''; return show === 'first' ? p[0] + (p[1] ? ' ' + p[1][0] + '.' : '') : p.join(' '); };
 
+export default async (req) => {
   const url = new URL(req.url);
   const q = Object.fromEntries(url.searchParams);
   const action = q.action || '';
   const store = getStore({ name: 'academy', consistency: 'strong' });
+
+  if (action === 'reviews' && req.method === 'GET') {
+    const all = (await store.get('reviews', { type: 'json' })) || {};
+    const list = Object.values(all).filter(r => r.ok).sort((a, b) => b.at.localeCompare(a.at)).map(shown);
+    return new Response(JSON.stringify({ reviews: list }), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+  }
+
+  const me = await whoIs(req);
+  if (!me) return fail(401, 'login');
 
   const read = async (sid, kind) => (await store.get(`s/${sid}/${kind}`, { type: 'json' })) || [];
   const write = (sid, kind, list) => store.setJSON(`s/${sid}/${kind}`, list);
@@ -90,6 +100,16 @@ export default async (req) => {
         const sid = me.teacher ? (q.student && ID.test(q.student) ? q.student : '') : me.id;
         const checks = sid ? (await store.get(`s/${sid}/checks`, { type: 'json' })) || {} : {};
         return json(200, { level, lessons: LESSONS[level], checks });
+      }
+
+      if (action === 'my-review') {
+        const all = (await store.get('reviews', { type: 'json' })) || {};
+        return json(200, { review: all[me.id] || null, name: me.name });
+      }
+      if (action === 'reviews-all') {
+        if (!me.admin) return fail(403, 'admin');
+        const all = (await store.get('reviews', { type: 'json' })) || {};
+        return json(200, { reviews: Object.values(all).sort((a, b) => (a.ok - b.ok) || b.at.localeCompare(a.at)) });
       }
 
       if (action === 'board') {                       // teacher overview: hand-ins to review + upcoming lessons
@@ -137,6 +157,26 @@ export default async (req) => {
     }
 
     const b = await body();
+
+    /* ---------- reviews: students write one (editing sends it back for approval); admin publishes ---------- */
+    if (action === 'review-save') {
+      if (me.teacher) return fail(403, 'students_only');
+      const stars = Math.round(+b.stars), text = str(b.text, 800), show = b.show === 'first' ? 'first' : 'full';
+      if (!(stars >= 1 && stars <= 5) || text.length < 20) return fail(400, 'review');
+      const name = reviewName(me.name || me.email.split('@')[0], show);
+      const all = (await store.get('reviews', { type: 'json' })) || {};
+      all[me.id] = { id: me.id, name, show, level: me.level.toUpperCase(), stars, text, at: new Date().toISOString(), ok: false };
+      await store.setJSON('reviews', all);
+      return json(200, { review: all[me.id] });
+    }
+    if (action === 'review-mod') {
+      if (!me.admin) return fail(403, 'admin');
+      const all = (await store.get('reviews', { type: 'json' })) || {};
+      if (!all[b.id]) return fail(404, 'missing');
+      if (b.remove) delete all[b.id]; else all[b.id].ok = !!b.ok;
+      await store.setJSON('reviews', all);
+      return json(200, { reviews: Object.values(all).sort((a, b2) => (a.ok - b2.ok) || b2.at.localeCompare(a.at)) });
+    }
 
     /* ---------- lesson check: mark it; save the result for students ---------- */
     if (action === 'check') {
