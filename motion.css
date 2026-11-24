@@ -434,12 +434,12 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 
 /* About: the team */
 .team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:36px}
-.person{background:#fff;border-radius:22px;padding:26px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 1px 0 var(--line)}
+.tm-card{background:#fff;border-radius:22px;padding:26px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 1px 0 var(--line)}
 .p-ph{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--rose);color:var(--garnet);font-weight:600;font-size:1.15rem;font-stretch:135%;margin-bottom:10px}
-.person h3{font-size:1.15rem;margin:0}
-.person .p-role{margin:0;color:var(--garnet);font-size:.92rem;font-weight:500}
-.person .p-bio{margin:6px 0 0;color:var(--muted);font-size:.95rem;line-height:1.55}
-.person .p-ig{margin-top:auto;padding-top:12px}
+.tm-card h3{font-size:1.15rem;margin:0}
+.tm-card .p-role{margin:0;color:var(--garnet);font-size:.92rem;font-weight:500}
+.tm-card .p-bio{margin:6px 0 0;color:var(--muted);font-size:.95rem;line-height:1.55}
+.tm-card .p-ig{margin-top:auto;padding-top:12px}
 .p-ig{margin-top:10px;display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--garnet);text-decoration:none}
 .p-ig .ic{width:16px;height:16px}
 .p-ig:hover{text-decoration:underline}
@@ -502,3 +502,13 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 
 /* step lists on phones: every step fits on one row */
 @media (max-width:1000px){.stepper ol{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);overflow:visible}.stepper ol button{min-width:0;padding:10px 2px}}
+
+/* Contact: one card with every way to reach us */
+.cinfo{margin-top:28px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:6px 8px}
+.ci{display:flex;gap:16px;align-items:center;padding:14px 14px;text-decoration:none;color:var(--text);border-radius:16px;transition:background .2s}
+.ci + .ci{border-top:1px solid var(--line);border-radius:0}
+.ci:hover{background:#FBF6F6}
+.ci .fi{flex:none}
+.ci div{min-width:0}
+.ci b{display:block;color:var(--garnet);font-weight:600;font-size:1.05rem;font-stretch:125%;overflow-wrap:anywhere}
+.ci span:not(.fi){display:block;font-size:.88rem;color:var(--muted);line-height:1.4}

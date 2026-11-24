@@ -8,6 +8,7 @@
   const doc = document.documentElement;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const L = (uz, ru, en) => `<span data-l="uz">${uz}</span><span data-l="ru">${ru}</span><span data-l="en">${en}</span>`;
+  const T = (uz, ru, en) => ({ uz, ru, en })[document.documentElement.lang] || en;   // plain text, for <option>
   const I = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
   const toast = html => { const t = document.getElementById('toast'); if (!t) return; t.innerHTML = html; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3500); };
 
@@ -53,7 +54,7 @@
     async logout() { const tk = await auth.token(); if (tk) { try { await fetch(API + '/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + tk } }); } catch (e) {} } store.clear(); }
   };
   const rolesOf = u => ((u && u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-  const homeFor = u => rolesOf(u).some(r => r === 'teacher' || r === 'admin' || r === 'clinic') ? 'teacher.html' : 'student.html';
+  const homeFor = u => rolesOf(u).some(r => ['teacher', 'admin', 'ceo', 'manager', 'clinic'].includes(r)) ? 'teacher.html' : 'student.html';
   const nameOf = u => (u.user_metadata && u.user_metadata.full_name) || u.email.split('@')[0];
   const initials = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('') || '•';
   async function fn(name, params) {
@@ -382,7 +383,37 @@
   };
   const lessonItem = (l, extra) => {
     const d = new Date(l.start);
-    return `<li>${dateBlock(d)}<div class="what"><b>${esc(l.title || L('Dars', 'Урок', 'Lesson'))}</b><span>${dayFmt(d)} · ${timeFmt(d)} · ${l.minutes || 60} ${L('daq', 'мин', 'min')}${l.who ? ' · ' + esc(l.who) : ''}</span>${l.note ? `<span class="lnote">${esc(l.note)}</span>` : ''}</div>${extra || joinBtn(l)}</li>`;
+    const kind = l.kind && l.kind !== 'teach' ? ' · ' + KIND[l.kind] : '';
+    const t = l.teacher && l.teacher.name && page === 'teacher' ? ' · ' + esc(l.teacher.name) : '';
+    return `<li>${dateBlock(d)}<div class="what"><b>${esc(l.title || L('Dars', 'Урок', 'Lesson'))}</b><span>${dayFmt(d)} · ${timeFmt(d)} · ${l.minutes || 60} ${L('daq', 'мин', 'min')}${kind}${l.who ? ' · ' + esc(l.who) : ''}${t}</span>${l.note ? `<span class="lnote">${esc(l.note)}</span>` : ''}${l.status && l.status !== 'planned' ? `<span class="lstat">${STAT[l.status]}</span>` : ''}</div>${extra || joinBtn(l)}</li>`;
+  };
+  /* CRM: lesson types, lesson outcomes, package usage */
+  const KIND = { teach: L('Dars', 'Урок', 'Teaching'), speak: L('Nutq', 'Разговор', 'Speaking'), mentor: L('Mentorlik', 'Менторство', 'Mentoring') };
+  const KT = { get teach() { return T('Dars', 'Урок', 'Teaching'); }, get speak() { return T('Nutq', 'Разговор', 'Speaking'); }, get mentor() { return T('Mentorlik', 'Менторство', 'Mentoring'); } };
+  const UT = k => k === 'mentor' ? T('uchrashuv', 'встр.', 'sessions') : T('soat', 'ч', 'h');
+  const UNIT = (k, n) => k === 'mentor' ? (n === 1 ? L('uchrashuv', 'встреча', 'session') : L('uchrashuv', 'встр.', 'sessions')) : L('soat', 'ч', 'h');
+  const num = n => String(Math.round(n * 100) / 100);
+  const STAT = {
+    taught: `<span class="tag">${I('check')}${L('Oʻtildi', 'Проведено', 'Taught')}</span>`,
+    late: `<span class="tag warn">${L('Kech bekor / kelmadi', 'Поздняя отмена / неявка', 'Late cancel / no-show')}</span>`,
+    cancelled: `<span class="tag grey">${L('Oldindan bekor qilindi', 'Отменено заранее', 'Cancelled in time')}</span>`
+  };
+  const payTags = () => ({ paid: `<span class="tag">${I('check')}${L('Toʻlangan', 'Оплачено', 'Paid')}</span>`, partial: `<span class="tag warn">${L('Qisman', 'Частично', 'Partly paid')}</span>`, due: `<span class="tag warn">${L('Kutilmoqda', 'Ожидается', 'Due')}</span>`, overdue: `<span class="tag bad">${L('Muddati oʻtgan', 'Просрочено', 'Overdue')}</span>` });
+  const markBtns = l => `<span class="mark" role="group" aria-label="Mark"><button type="button" class="btn btn-p btn-xs" data-mark="${esc(l.id)}|taught" title="${T('Dars oʻtildi', 'Занятие проведено', 'Lesson taught')}">${I('check')}${L('Oʻtildi', 'Проведено', 'Taught')}</button><button type="button" class="btn btn-s btn-xs" data-mark="${esc(l.id)}|late" title="${T('24 soatdan kam vaqt qolganda bekor qilindi yoki kelmadi: hisoblanadi', 'Отмена менее чем за 24 ч или неявка: засчитывается', 'Cancelled under 24h or no-show: counts as used')}">${L('Kech / kelmadi', 'Поздно / неявка', 'Late / no-show')}</button><button type="button" class="btn btn-s btn-xs" data-mark="${esc(l.id)}|cancelled" title="${T('24+ soat oldin bekor qilindi: hisoblanmaydi', 'Отменено за 24+ ч: не засчитывается', 'Cancelled 24h+ before: not counted')}">${L('Bekor', 'Отмена', 'Cancelled')}</button></span>`;
+  const isPast = l => Date.parse(l.start) + (l.minutes || 60) * 60000 <= Date.now();
+  const unmarked = l => isPast(l) && (!l.status || l.status === 'planned');
+  const partBar = (k, p) => {
+    const total = p.own + p.carry, used = p.used, pct = total ? Math.min(100, used / total * 100) : (used ? 100 : 0);
+    return `<div class="pbar${p.over ? ' over' : ''}"><div class="pbar-h"><b>${KIND[k]}</b><span>${num(Math.min(used, total || used))} / ${num(total)} ${UNIT(k, total)}</span></div>
+      <div class="pbar-t"><i style="width:${pct}%"></i></div>
+      <small>${p.over ? L(`${num(p.over)} ${UNIT(k, p.over)} paketdan tashqari`, `${num(p.over)} ${UNIT(k, p.over)} сверх пакета`, `${num(p.over)} ${UNIT(k, p.over)} over the package`) : L(`${num(p.left)} ${UNIT(k, p.left)} qoldi`, `Осталось ${num(p.left)} ${UNIT(k, p.left)}`, `${num(p.left)} ${UNIT(k, p.left)} left`)}${p.carry ? ` · ${L(`${num(p.carry)} oʻtgan oydan`, `${num(p.carry)} с прошлого месяца`, `${num(p.carry)} carried over`)}` : ''}</small></div>`;
+  };
+  const curMonth = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' }).slice(0, 7);
+  const packageCard = (bal, title) => {
+    const m = (bal || []).find(x => x.month === curMonth());
+    if (!m) return `<div class="card pkg"><div class="card-h"><h3>${title}</h3></div><p class="muted">${L('Bu oy uchun paket yoʻq.', 'На этот месяц пакета нет.', 'No package for this month.')}</p></div>`;
+    return `<div class="card pkg"><div class="card-h"><h3>${title}</h3><span class="tag rose">${m.name ? esc(m.name) : L('Paketsiz', 'Без пакета', 'No package')} · ${monthFmt(m.month)}</span></div>
+      <div class="pbars">${['teach', 'speak', 'mentor'].map(k => partBar(k, m.parts[k])).join('')}</div></div>`;
   };
   const splitLessons = list => {
     const now = Date.now(), end = l => Date.parse(l.start) + (l.minutes || 60) * 60000;
@@ -556,7 +587,10 @@
   (async function start() {
     USER = await auth.user();
     if (!USER) { location.replace('login.html'); return; }
-    const roles = rolesOf(USER), isAdmin = roles.includes('admin'), isTeacher = isAdmin || roles.includes('teacher'), isClinic = isAdmin || roles.includes('clinic');
+    const roles = rolesOf(USER), isCeo = roles.includes('ceo'), isManager = roles.includes('manager');
+    const isAdmin = roles.includes('admin') || isCeo, isMoney = isAdmin || isManager;        // isAdmin: admin or CEO (everything)
+    const isTeacher = isMoney || roles.includes('teacher'), isLimited = isTeacher && !isMoney;  // isTeacher: any staff; isLimited: a teacher only
+    const isClinic = isAdmin || roles.includes('clinic');
     if (page === 'teacher' && !isTeacher && !isClinic) { location.replace('student.html'); return; }
     if (page === 'student' && (isTeacher || isClinic)) { location.replace('teacher.html'); return; }
     if (page === 'teacher') {   /* show only the screens this account may use */
@@ -565,7 +599,7 @@
       navLinks.forEach(a => { if (!can(a.dataset.view)) a.hidden = true; });
     }
     const name = nameOf(USER), level = ['b1', 'b2', 'c1'].find(l => roles.includes(l));
-    document.getElementById('me').innerHTML = `<span class="avatar${isTeacher ? ' c3' : ''}">${esc(initials(name))}</span><div><b>${esc(name)}</b><span>${isTeacher || isClinic ? (isAdmin ? L('Administrator', 'Администратор', 'Admin') : isTeacher ? L('Oʻqituvchi', 'Преподаватель', 'Teacher') : L('Klinika', 'Клиника', 'Clinic')) : 'Medical English' + (level ? ' · ' + level.toUpperCase() : '')}</span></div><a href="login.html" data-logout aria-label="Log out">${I('logout')}</a>`;
+    document.getElementById('me').innerHTML = `<span class="avatar${isTeacher ? ' c3' : ''}">${esc(initials(name))}</span><div><b>${esc(name)}</b><span>${isTeacher || isClinic ? (isCeo ? 'CEO' : isAdmin ? L('Administrator', 'Администратор', 'Admin') : isManager ? L('Hisob menejeri', 'Аккаунт-менеджер', 'Account manager') : isTeacher ? L('Oʻqituvchi', 'Преподаватель', 'Teacher') : L('Klinika', 'Клиника', 'Clinic')) : 'Medical English' + (level ? ' · ' + level.toUpperCase() : '')}</span></div><a href="login.html" data-logout aria-label="Log out">${I('logout')}</a>`;
     document.querySelectorAll('#me [data-logout]').forEach(a => a.addEventListener('click', async e => { e.preventDefault(); await auth.logout(); location.replace('login.html'); }));
     const last = (() => { try { return JSON.parse(localStorage.getItem('shifo-last-' + page) || 'null'); } catch (e) { return null; } })();
     const rerender = (...keys) => keys.forEach(k => { rendered[k] = false; const v = document.getElementById('view-' + k); if (v && !v.hidden && RENDER[k]) { rendered[k] = true; RENDER[k](v); } });
@@ -591,6 +625,7 @@
           <div class="card kpi"><p class="k">${I('edit')}${L('Uy vazifasi', 'Домашка', 'Homework')}</p><b>${todo.length}</b><small>${L('topshirish kerak', 'нужно сдать', 'to hand in')}</small>
             ${due ? `<div class="callout" style="margin-top:16px">${I('wallet')}<span>${monthFmt(due.month)}: ${due.status === 'overdue' ? L('toʻlov muddati oʻtgan', 'оплата просрочена', 'payment overdue') : L('toʻlov kutilmoqda', 'ожидается оплата', 'payment due')}</span></div>` : ''}</div>
         </div>
+        <div style="margin-top:18px">${packageCard(D.balance, L('Mening paketim', 'Мой пакет', 'My package'))}</div>
         <div class="grid g2" style="margin-top:18px">
           <div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Next lessons')}</h3><a class="link" href="#schedule">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
             ${next.length ? `<ul class="list">${next.slice(0, 3).map(l => lessonItem(l)).join('')}</ul>` : `<p class="muted">${L('Hozircha rejalashtirilgan dars yoʻq.', 'Пока нет запланированных занятий.', 'No lessons planned yet.')}</p>`}</div>
@@ -744,19 +779,29 @@
       RENDER.payments = async v => {
         v.innerHTML = loading;
         try { await load(); } catch (e) { v.innerHTML = failed(e); return; }
-        const P = D.payments || [];
-        const PT = { paid: `<span class="tag">${I('check')}${L('Toʻlangan', 'Оплачено', 'Paid')}</span>`, due: `<span class="tag warn">${L('Kutilmoqda', 'Ожидается', 'Due')}</span>`, overdue: `<span class="tag bad">${L('Muddati oʻtgan', 'Просрочено', 'Overdue')}</span>` };
-        v.innerHTML = `<div class="card"><div class="card-h"><h3>${L('Toʻlovlar', 'Оплаты', 'Payments')}</h3><span class="muted" style="font-size:.9rem">USD</span></div>
-          ${P.length ? `<div class="months">${P.map(p => `<div class="month ${p.status}"><b>${monthFmt(p.month)}</b><span>${p.amount ? money(p.amount) : ''}</span><div>${PT[p.status]}</div>${p.note ? `<span class="pnote">${esc(p.note)}</span>` : ''}</div>`).join('')}</div>`
-            : `<p class="muted">${L('Hozircha toʻlovlar kiritilmagan.', 'Оплаты пока не внесены.', 'No payments recorded yet.')}</p>`}
-          <p class="note">${L('Toʻlov boʻyicha savollar boʻlsa, bizga yozing.', 'Вопросы по оплате? Напишите нам.', 'Questions about a payment? Write to us.')} <a class="link" href="contact.html#academy">${L('Bogʻlanish', 'Связаться', 'Contact us')}</a></p></div>`;
+        const P = D.payments || [], B = D.balance || [];
+        const PT = payTags();
+        const hist = B.map(m => `<tr><td><b>${monthFmt(m.month)}</b><br><span class="muted" style="font-size:.85rem">${m.name ? esc(m.name) : L('Paketsiz', 'Без пакета', 'No package')}</span></td>${['teach', 'speak', 'mentor'].map(k => { const p = m.parts[k]; return `<td>${num(p.used)} / ${num(p.own + p.carry)}${p.over ? ` <span class="tag bad">+${num(p.over)}</span>` : ''}</td>`; }).join('')}<td>${(P.find(x => x.month === m.month) || {}).status ? PT[P.find(x => x.month === m.month).status] : ''}</td></tr>`).join('');
+        v.innerHTML = `${packageCard(B, L('Shu oy', 'Этот месяц', 'This month'))}
+          <div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oylar boʻyicha', 'По месяцам', 'Month by month')}</h3><span class="muted" style="font-size:.9rem">${L('ishlatildi / jami', 'использовано / всего', 'used / total')}</span></div>
+            ${B.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>${L('Oy', 'Месяц', 'Month')}</th><th>${KIND.teach}, ${UNIT('teach')}</th><th>${KIND.speak}, ${UNIT('speak')}</th><th>${KIND.mentor}</th><th>${L('Toʻlov', 'Оплата', 'Payment')}</th></tr></thead><tbody>${hist}</tbody></table></div>`
+              : `<p class="muted">${L('Hozircha maʼlumot yoʻq.', 'Пока нет данных.', 'Nothing here yet.')}</p>`}
+            <p class="note">${L('Oyning oxirida ishlatilmagan soatlar keyingi oyga bir marta oʻtadi. 24 soatdan kam vaqt qolganda bekor qilingan yoki qoldirilgan dars hisoblanadi.', 'Неиспользованные часы переходят на следующий месяц один раз. Занятие, отменённое менее чем за 24 часа, или пропущенное, засчитывается.', 'Unused hours move to the next month once. A lesson cancelled less than 24 hours before, or missed, counts as used.')}</p></div>
+          ${P.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Toʻlovlar', 'Оплаты', 'Payments')}</h3><span class="muted" style="font-size:.9rem">USD</span></div><div class="months">${P.map(p => `<div class="month ${p.status}"><b>${monthFmt(p.month)}</b><span>${p.amount ? money(p.amount) : ''}</span><div>${PT[p.status]}</div>${p.note ? `<span class="pnote">${esc(p.note)}</span>` : ''}</div>`).join('')}</div>
+            <p class="note">${L('Toʻlov boʻyicha savollar boʻlsa, bizga yozing.', 'Вопросы по оплате? Напишите нам.', 'Questions about a payment? Write to us.')} <a class="link" href="contact.html#academy">${L('Bogʻlanish', 'Связаться', 'Contact us')}</a></p></div>` : ''}`;
       };
     }
 
     /* ---------------- TEACHER / ADMIN ---------------- */
     if (page === 'teacher' && isTeacher) {
-      let roster = null, board = null;
-      const getRoster = async () => roster || (roster = (await fn('students')).students);
+      let roster = null, board = null, staffList = [], crmHidden = null;
+      const getRoster = async () => {
+        if (roster) return roster;
+        const [r, c] = await Promise.all([fn('students'), isLimited ? api('crm') : null]);
+        staffList = r.staff || [];
+        crmHidden = c ? c.hidden || [] : [];
+        return (roster = r.students.filter(x => !crmHidden.includes(x.id)));   // a teacher sees their own and unassigned students
+      };
       const getBoard = async (fresh) => (!fresh && board) || (board = await api('board'));
       const who = id => { const s = (roster || []).find(x => x.id === id); return s ? (s.name || s.email) : ''; };
       const setCounts = () => document.querySelectorAll('[data-review-count]').forEach(c => { const n = board ? board.review.filter(h => !h.review).length : 0; c.textContent = n; c.hidden = !n; });
@@ -806,6 +851,18 @@
           <div class="card"><div class="card-h"><h3>${L('Tekshirish kerak', 'Ждут проверки', 'To review')}</h3><a class="link" href="#review">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
             ${waiting.length ? waiting.slice(0, 4).map(h => `<div class="hwi slim"><span class="avatar sm">${esc(initials(who(h.student) || '?'))}</span><div><b>${esc(h.title)}</b><span class="meta">${esc(who(h.student))} · ${dayFmt(new Date(h.submission.at))}</span></div><button type="button" class="btn btn-p btn-sm" data-rv="${esc(h.student)}|${esc(h.id)}">${L('Tekshirish', 'Проверить', 'Review')}</button></div>`).join('') : `<p class="muted">${L('Hammasi tekshirildi.', 'Всё проверено.', 'All caught up.')}</p>`}</div>
         </div>`;
+        /* lessons that ended and still need marking: taught, late cancel / no-show, cancelled in time */
+        const tm = board.toMark || [];
+        if (tm.length) {
+          v.insertAdjacentHTML('afterbegin', `<div class="card tomark" style="margin-bottom:18px"><div class="card-h"><h3>${L('Darslarni belgilang', 'Отметьте занятия', 'Mark your lessons')}</h3><span class="tag warn">${tm.length}</span></div>
+            <p class="muted" style="margin:-4px 0 10px;font-size:.9rem">${L('Paket hisobi shundan olinadi.', 'Из этого считается пакет студента.', 'This is what counts the student’s package.')}</p>
+            <ul class="list">${tm.slice(0, 8).map(l => lessonItem({ ...l, who: who(l.student) }, `<div class="row-act">${markBtns(l)}</div>`)).join('')}</ul></div>`);
+          v.querySelectorAll('.tomark [data-mark]').forEach(b => b.addEventListener('click', async () => {
+            const [id, status] = b.dataset.mark.split('|'), l = tm.find(x => x.id === id); b.disabled = true;
+            try { await api('lesson-mark', { body: { student: l.student, id, status } }); crmCache = {}; board = null; rerender('overview'); toast(L('Belgilandi.', 'Отмечено.', 'Marked.')); }
+            catch (e) { b.disabled = false; toast(errMsg(e)); }
+          }));
+        }
         if (isAdmin) {
           v.insertAdjacentHTML('beforeend', `<div class="card" style="margin-top:18px" id="rv-admin">${loading}</div>`);
           const box = v.querySelector('#rv-admin');
@@ -850,6 +907,77 @@
       };
 
       /* students list + one student's page */
+      /* ---------------- CRM ---------------- */
+      let crmCache = {}, crmMonth = curMonth(), crmTab = 'students';
+      const getCrm = async m => crmCache[m] || (crmCache[m] = await api('crm', { params: { month: m } }));
+      const shiftMonth = (m, d) => { const [y, mo] = m.split('-').map(Number), x = new Date(Date.UTC(y, mo - 1 + d, 15)); return x.toISOString().slice(0, 7); };
+      RENDER.crm = async v => {
+        v.innerHTML = loading;
+        let C; try { await getRoster(); C = await getCrm(crmMonth); } catch (e) { v.innerHTML = failed(e); return; }
+        const PT = payTags(), pk = id => (C.packages.find(p => p.id === id) || {}).name || '';
+        const people = roster.map(st => ({ st, row: C.rows[st.id] || { teacher: null, month: null, toMark: 0 } }));
+        const active = people.filter(x => x.row.month && x.row.month.pkg);
+        const taught = C.teachers.reduce((a, t) => a + t.lessons, 0), toMark = people.reduce((a, x) => a + (x.row.toMark || 0), 0);
+        const low = x => { const m = x.row.month; return m && m.pkg && (m.parts.teach.left <= 2 || Object.values(m.parts).some(p => p.over)); };
+        const left = (m, k) => m ? `<span class="${m.parts[k].over ? 'neg' : m.parts[k].left <= (k === 'mentor' ? 0 : 2) && m.pkg ? 'lowv' : ''}">${m.parts[k].over ? '−' + num(m.parts[k].over) : num(m.parts[k].left)}</span><small> / ${num(m.parts[k].own + m.parts[k].carry)}</small>` : '<span class="muted">—</span>';
+        const tabs = [['students', L('Talabalar', 'Студенты', 'Students')]].concat(isAdmin || isLimited ? [['teachers', isLimited ? L('Mening soatlarim', 'Мои часы', 'My hours') : L('Oʻqituvchilar', 'Преподаватели', 'Teachers')]] : []).concat(isMoney ? [['money', L('Toʻlovlar', 'Оплаты', 'Payments')]] : []).concat([['packages', L('Paketlar', 'Пакеты', 'Packages')]]);
+        if (!tabs.some(t => t[0] === crmTab)) crmTab = 'students';
+        let body = '';
+        if (crmTab === 'students') {
+          body = `<div class="card" style="padding:8px 12px"><div class="tbl-wrap"><table class="tbl crm"><thead><tr><th>${L('Talaba', 'Студент', 'Student')}</th><th>${L('Oʻqituvchi', 'Преподаватель', 'Teacher')}</th><th>${L('Paket', 'Пакет', 'Package')}</th><th>${KIND.teach}<small> ${L('qoldi, soat', 'осталось, ч', 'left, h')}</small></th><th>${KIND.speak}<small> ${L('qoldi, soat', 'осталось, ч', 'left, h')}</small></th><th>${KIND.mentor}<small> ${L('qoldi', 'осталось', 'left')}</small></th>${isMoney ? `<th>${L('Toʻlov', 'Оплата', 'Payment')}</th>` : ''}<th></th></tr></thead><tbody>
+            ${people.map(x => { const m = x.row.month; return `<tr class="click" data-crm-open="${esc(x.st.id)}" tabindex="0"><td><b>${esc(x.st.name || x.st.email)}</b>${x.st.level ? ` <span class="tag rose">${x.st.level.toUpperCase()}</span>` : ''}${x.row.toMark ? `<br><span class="tag warn">${x.row.toMark} ${L('belgilanmagan', 'не отмечено', 'to mark')}</span>` : ''}</td>
+              <td>${x.row.teacher ? esc(x.row.teacher.name) : '<span class="muted">—</span>'}</td><td>${m && m.pkg ? esc(pk(m.pkg) || m.name) : `<span class="tag grey">${L('Paketsiz', 'Без пакета', 'No package')}</span>`}</td>
+              <td>${left(m, 'teach')}</td><td>${left(m, 'speak')}</td><td>${left(m, 'mentor')}</td>${isMoney ? `<td>${x.row.pay ? PT[x.row.pay.status] : '<span class="muted">—</span>'}</td>` : ''}<td class="go">${I('arrow')}</td></tr>`; }).join('') || `<tr><td colspan="8" class="muted">${L('Talabalar yoʻq.', 'Студентов нет.', 'No students.')}</td></tr>`}
+            </tbody></table></div></div>
+            <p class="note">${L('Qizil: paketdan ortiq ishlatilgan. Toʻq sariq: 2 soat yoki kamroq qoldi. Bosib talaba sahifasini oching.', 'Красный: использовано сверх пакета. Оранжевый: осталось 2 ч или меньше. Нажмите, чтобы открыть студента.', 'Red: used beyond the package. Amber: 2 hours or less left. Click a row to open the student.')}</p>`;
+        }
+        if (crmTab === 'teachers') {
+          body = C.teachers.length ? `<div class="card" style="padding:8px 12px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${L('Oʻqituvchi', 'Преподаватель', 'Teacher')}</th><th>${L('Darslar', 'Занятия', 'Lessons')}</th><th>${KIND.teach}, ${UNIT('teach')}</th><th>${KIND.speak}, ${UNIT('speak')}</th><th>${KIND.mentor}</th><th>${L('Jami soat', 'Всего часов', 'Total hours')}</th><th>${L('Kech / kelmadi', 'Поздно / неявка', 'Late / no-show')}</th><th>${L('Talabalar', 'Студенты', 'Students')}</th></tr></thead><tbody>
+            ${C.teachers.sort((a, b) => b.lessons - a.lessons).map(t => `<tr><td><b>${esc(t.name || '—')}</b></td><td>${t.lessons}</td><td>${num(t.teach)}</td><td>${num(t.speak)}</td><td>${num(t.mentor)}</td><td><b>${num(t.teach + t.speak)}</b></td><td>${t.late}</td><td>${t.students.length}</td></tr>`).join('')}</tbody></table></div></div>
+            <p class="note">${L('Oʻtilgan va kech bekor qilingan darslar hisoblanadi (oʻqituvchiga toʻlanadi). Oyni yuqoridan tanlang.', 'Считаются проведённые и поздно отменённые занятия (оплачиваются преподавателю). Месяц выбирается сверху.', 'Counts taught lessons and late cancels (paid to the teacher). Pick the month above.')}</p>`
+            : `<div class="card muted">${L('Bu oyda belgilangan dars yoʻq.', 'В этом месяце нет отмеченных занятий.', 'No marked lessons this month.')}</div>`;
+        }
+        if (crmTab === 'money') {
+          const T0 = C.totals || {};
+          const rows = people.filter(x => x.row.pay);
+          body = `<div class="grid g3"><div class="card kpi"><p class="k">${I('check')}${L('Toʻlangan', 'Оплачено', 'Paid')}</p><b>${money(T0.paid || 0)}</b></div>
+            <div class="card kpi"><p class="k">${I('clock')}${L('Kutilmoqda va qisman', 'Ожидается и частично', 'Due and partly paid')}</p><b>${money((T0.due || 0) + (T0.partial || 0))}</b></div>
+            <div class="card kpi"><p class="k">${I('alert')}${L('Muddati oʻtgan', 'Просрочено', 'Overdue')}</p><b>${money(T0.overdue || 0)}</b></div></div>
+            <div class="card" style="margin-top:18px;padding:8px 12px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${L('Talaba', 'Студент', 'Student')}</th><th>${L('Paket', 'Пакет', 'Package')}</th><th>${L('Summa', 'Сумма', 'Amount')}</th><th>${L('Holat', 'Статус', 'Status')}</th></tr></thead><tbody>
+            ${rows.map(x => `<tr class="click" data-crm-open="${esc(x.st.id)}"><td><b>${esc(x.st.name || x.st.email)}</b></td><td>${esc(pk(x.row.pay.pkg)) || '—'}</td><td>${money(x.row.pay.amount || 0)}</td><td>${PT[x.row.pay.status]}</td></tr>`).join('') || `<tr><td colspan="4" class="muted">${L('Bu oy uchun toʻlov kiritilmagan.', 'За этот месяц оплат нет.', 'No payments recorded for this month.')}</td></tr>`}
+            </tbody></table></div></div>
+            ${people.filter(x => !x.row.pay).length ? `<p class="note">${L('Bu oy toʻlovi kiritilmaganlar', 'Без оплаты в этом месяце', 'No payment this month')}: ${people.filter(x => !x.row.pay).map(x => esc(x.st.name || x.st.email)).join(', ')}</p>` : ''}`;
+        }
+        if (crmTab === 'packages') {
+          body = `<form id="pkg-form"><div class="grid g3">${C.packages.map((p, i) => `<div class="card pkgedit"><input type="hidden" name="id${i}" value="${esc(p.id)}">
+              ${isAdmin ? `<label>${L('Nomi', 'Название', 'Name')}<input name="name${i}" value="${esc(p.name)}" maxlength="80"></label>` : `<h3>${esc(p.name)}</h3>`}
+              ${isMoney ? (isAdmin ? `<label>${L('Narx (USD / oy)', 'Цена (USD / мес)', 'Price (USD / month)')}<input type="number" step="0.01" min="0" name="price${i}" value="${p.price}"></label>` : `<p class="price-ro">${money(p.price)} <small>/ ${L('oy', 'мес', 'month')}</small></p>`) : ''}
+              ${['teach', 'speak', 'mentor'].map(k => isAdmin ? `<label><span>${KIND[k]}, ${UNIT(k)} / ${L('oy', 'мес', 'month')}</span><input type="number" step="0.25" min="0" name="${k}${i}" value="${p.parts[k]}"></label>` : `<p class="row-ro"><span>${KIND[k]}</span><b>${num(p.parts[k])} ${UNIT(k)}</b></p>`).join('')}
+            </div>`).join('')}</div>
+            ${isAdmin ? `<p class="form-msg" id="pkg-msg"></p><button class="btn btn-p" type="submit" style="margin-top:14px">${I('check')}${L('Paketlarni saqlash', 'Сохранить пакеты', 'Save packages')}</button>` : ''}</form>
+            <p class="note">${L('Har oy uchun. Ishlatilmagan soatlar keyingi oyga bir marta oʻtadi.', 'На месяц. Неиспользованные часы переходят на следующий месяц один раз.', 'Per month. Unused hours carry over to the next month once.')}</p>`;
+        }
+        v.innerHTML = `<div class="toolbar crm-bar"><div class="monthpick"><button type="button" class="icon-btn" data-mshift="-1" aria-label="Previous month">${I('arrowl')}</button><b>${monthFmt(crmMonth)}</b><button type="button" class="icon-btn" data-mshift="1" aria-label="Next month">${I('arrow')}</button></div></div>
+          <div class="grid g4 crm-kpi">
+            <div class="card kpi"><p class="k">${I('users')}${L('Paketli talabalar', 'Студенты с пакетом', 'Students with a package')}</p><b>${active.length}<small>/${people.length}</small></b></div>
+            <div class="card kpi"><p class="k">${I('check')}${L('Oʻtilgan darslar', 'Проведено занятий', 'Lessons taught')}</p><b>${taught}</b></div>
+            <div class="card kpi"><p class="k">${I('alert')}${L('Kam qolgan', 'Заканчивается', 'Running low')}</p><b>${people.filter(low).length}</b></div>
+            <div class="card kpi"><p class="k">${I('clock')}${L('Belgilanmagan', 'Не отмечено', 'To mark')}</p><b>${toMark}</b></div>
+          </div>
+          <div class="mini-tabs" role="tablist" style="margin-top:18px">${tabs.map(([k, t]) => `<button type="button" role="tab" data-crm-tab="${k}" aria-selected="${k === crmTab}">${t}</button>`).join('')}</div>
+          ${body}`;
+        v.querySelectorAll('[data-mshift]').forEach(b => b.addEventListener('click', () => { crmMonth = shiftMonth(crmMonth, +b.dataset.mshift); RENDER.crm(v); }));
+        v.querySelectorAll('[data-crm-tab]').forEach(b => b.addEventListener('click', () => { crmTab = b.dataset.crmTab; RENDER.crm(v); }));
+        v.querySelectorAll('[data-crm-open]').forEach(tr => { const go = () => { openStudent = tr.dataset.crmOpen; studentPage.tab = 'payments'; rendered.students = false; location.hash = 'students'; }; tr.addEventListener('click', go); tr.addEventListener('keydown', e => { if (e.key === 'Enter') go(); }); });
+        const pf = v.querySelector('#pkg-form');
+        if (pf && isAdmin) pf.addEventListener('submit', async e => {
+          e.preventDefault(); const f = e.target, btn = f.querySelector('[type=submit]'); btn.disabled = true;
+          const packages = C.packages.map((p, i) => ({ id: f['id' + i].value, name: f['name' + i].value, price: +f['price' + i].value, parts: { teach: +f['teach' + i].value, speak: +f['speak' + i].value, mentor: +f['mentor' + i].value } }));
+          try { await api('packages-save', { body: { packages } }); crmCache = {}; toast(L('Paketlar saqlandi.', 'Пакеты сохранены.', 'Packages saved.')); RENDER.crm(v); }
+          catch (err) { const m = v.querySelector('#pkg-msg'); m.innerHTML = errMsg(err); m.className = 'form-msg err'; btn.disabled = false; }
+        });
+      };
+
       let openStudent = null;
       /* the Students item in the menu always leads back to the list */
       document.querySelectorAll('a[data-view="students"]').forEach(a => a.addEventListener('click', () => {
@@ -885,7 +1013,7 @@
         let tab = studentPage.tab || 'lessons';
         const draw = () => {
           studentPage.tab = tab;
-          const tabs = [['lessons', L('Darslar', 'Занятия', 'Lessons')], ['homework', L('Uy vazifasi', 'Домашка', 'Homework')], ['checks', L('Testlar', 'Проверки', 'Checks')], ['speaking', L('Nutq', 'Разговор', 'Speaking')]].concat(isAdmin ? [['payments', L('Toʻlovlar', 'Оплаты', 'Payments')]] : []);
+          const tabs = [['lessons', L('Darslar', 'Занятия', 'Lessons')], ['homework', L('Uy vazifasi', 'Домашка', 'Homework')], ['checks', L('Testlar', 'Проверки', 'Checks')], ['speaking', L('Nutq', 'Разговор', 'Speaking')]].concat([['payments', isMoney ? L('Paket va toʻlov', 'Пакет и оплата', 'Package & payments') : L('Paket', 'Пакет', 'Package')]]);
           let body = '';
           const slv = s.level || 'b1';
           if (tab === 'checks') {
@@ -915,10 +1043,11 @@
           }
           if (tab === 'lessons') {
             const { next, past } = splitLessons(S.schedule);
-            const actions = l => `<div class="row-act"><button type="button" class="icon-btn" data-edit-lesson="${esc(l.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-lesson="${esc(l.id)}" aria-label="Delete">${I('x')}</button></div>`;
+            const actions = l => `<div class="row-act">${unmarked(l) ? markBtns(l) : ''}<button type="button" class="icon-btn" data-edit-lesson="${esc(l.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-lesson="${esc(l.id)}" aria-label="Delete">${I('x')}</button></div>`;
+            const toMark = S.schedule.filter(unmarked).length;
             body = `<div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Upcoming lessons')}</h3><button type="button" class="btn btn-p btn-sm" data-add-lesson>${I('calendar')}${L('Dars qoʻshish', 'Добавить занятие', 'Add a lesson')}</button></div>
               ${next.length ? `<ul class="list">${next.map(l => lessonItem(l, actions(l))).join('')}</ul>` : `<p class="muted">${L('Rejalashtirilgan dars yoʻq.', 'Нет запланированных занятий.', 'No lessons planned.')}</p>`}</div>
-              ${past.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oʻtgan darslar', 'Прошедшие занятия', 'Past lessons')}</h3></div><ul class="list">${past.slice(0, 12).map(l => lessonItem(l, actions(l))).join('')}</ul></div>` : ''}`;
+              ${past.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oʻtgan darslar', 'Прошедшие занятия', 'Past lessons')}</h3>${toMark ? `<span class="tag warn">${toMark} ${L('belgilanmagan', 'не отмечено', 'to mark')}</span>` : ''}</div><ul class="list lessons-past">${past.slice(0, 30).map(l => lessonItem(l, actions(l))).join('')}</ul></div>` : ''}`;
           }
           if (tab === 'homework') {
             const card = h => { const st = hwState(h); return `<div class="hwi hw-card"><span class="ico">${I(st === 'reviewed' ? 'check' : 'edit')}</span>
@@ -929,11 +1058,24 @@
               <div class="hw">${S.homework.map(card).join('') || `<div class="card muted">${L('Bu talabaga hali vazifa berilmagan.', 'Этому студенту ещё не задано заданий.', 'No homework set for this student yet.')}</div>`}</div>`;
           }
           if (tab === 'payments') {
-            const PT = { paid: `<span class="tag">${I('check')}${L('Toʻlangan', 'Оплачено', 'Paid')}</span>`, due: `<span class="tag warn">${L('Kutilmoqda', 'Ожидается', 'Due')}</span>`, overdue: `<span class="tag bad">${L('Muddati oʻtgan', 'Просрочено', 'Overdue')}</span>` };
-            body = `<div class="card"><div class="card-h"><h3>${L('Toʻlovlar', 'Оплаты', 'Payments')}</h3><button type="button" class="btn btn-p btn-sm" data-add-pay>${I('wallet')}${L('Oy qoʻshish', 'Добавить месяц', 'Add a month')}</button></div>
-              ${(S.payments || []).length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>${L('Oy', 'Месяц', 'Month')}</th><th>${L('Summa', 'Сумма', 'Amount')}</th><th>${L('Holat', 'Статус', 'Status')}</th><th></th></tr></thead><tbody>${S.payments.map(p => `<tr><td><b>${monthFmt(p.month)}</b>${p.note ? `<br><span class="muted" style="font-size:.85rem">${esc(p.note)}</span>` : ''}</td><td>${p.amount ? money(p.amount) : '—'}</td><td>${PT[p.status]}</td><td><div class="row-act"><button type="button" class="icon-btn" data-edit-pay="${esc(p.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-pay="${esc(p.id)}" aria-label="Delete">${I('x')}</button></div></td></tr>`).join('')}</tbody></table></div>`
-                : `<p class="muted">${L('Hali toʻlov kiritilmagan.', 'Оплаты ещё не внесены.', 'No payments recorded yet.')}</p>`}
-              <p class="note">${L('Bu boʻlimni faqat siz (administrator) koʻrasiz. Talaba oʻz toʻlovlarini koʻradi.', 'Этот раздел видите только вы (администратор). Студент видит свои оплаты.', 'Only you (admin) see this section. The student sees their own payments.')}</p></div>`;
+            const PT = payTags(), P = S.payments || [], B = S.balance || [];
+            const months = [...new Set(B.map(m => m.month).concat(P.map(p => p.month)))].sort().reverse();
+            const TT = S.teacher;
+            const tBox = isMoney
+              ? `<label class="assign">${L('Oʻqituvchi', 'Преподаватель', 'Teacher')}<select data-assign-t><option value="">${T('— Tanlanmagan', '— Не назначен', '— Not assigned')}</option>${staffList.map(t => `<option value="${esc(t.id)}"${TT && TT.id === t.id ? ' selected' : ''}>${esc(t.name || t.email)}</option>`).join('')}${TT && !staffList.some(t => t.id === TT.id) ? `<option value="${esc(TT.id)}" selected>${esc(TT.name)}</option>` : ''}</select></label>`
+              : `<p class="assign-ro">${L('Oʻqituvchi', 'Преподаватель', 'Teacher')}: <b>${TT ? esc(TT.name) : '—'}</b></p>`;
+            const row = m => {
+              const b = B.find(x => x.month === m), p = P.find(x => x.month === m && x.pkg) || P.find(x => x.month === m);
+              const cell = k => { const x = b && b.parts[k]; return x ? `${num(x.used)} / ${num(x.own + x.carry)}${x.over ? ` <span class="tag bad">+${num(x.over)}</span>` : ''}` : '—'; };
+              return `<tr><td><b>${monthFmt(m)}</b><br><span class="muted" style="font-size:.85rem">${b && b.name ? esc(b.name) : (p && p.pkg ? '' : L('Paketsiz', 'Без пакета', 'No package'))}</span></td><td>${cell('teach')}</td><td>${cell('speak')}</td><td>${cell('mentor')}</td>
+                ${isMoney ? `<td>${p ? (p.amount ? money(p.amount) + ' ' : '') + PT[p.status] : ''}${p && p.note ? `<br><span class="muted" style="font-size:.85rem">${esc(p.note)}</span>` : ''}</td><td>${p ? `<div class="row-act"><button type="button" class="icon-btn" data-edit-pay="${esc(p.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-pay="${esc(p.id)}" aria-label="Delete">${I('x')}</button></div>` : ''}</td>` : ''}</tr>`;
+            };
+            body = `<div class="card assign-card">${tBox}</div>
+              <div style="margin-top:18px">${packageCard(B, L('Shu oy', 'Этот месяц', 'This month'))}</div>
+              <div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oylar', 'Месяцы', 'Months')}</h3>${isMoney ? `<button type="button" class="btn btn-p btn-sm" data-add-pay>${I('wallet')}${L('Oy qoʻshish', 'Добавить месяц', 'Add a month')}</button>` : `<span class="muted" style="font-size:.9rem">${L('ishlatildi / jami', 'использовано / всего', 'used / total')}</span>`}</div>
+                ${months.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>${L('Oy', 'Месяц', 'Month')}</th><th>${KIND.teach}, ${UNIT('teach')}</th><th>${KIND.speak}, ${UNIT('speak')}</th><th>${KIND.mentor}</th>${isMoney ? `<th>${L('Toʻlov', 'Оплата', 'Payment')}</th><th></th>` : ''}</tr></thead><tbody>${months.map(row).join('')}</tbody></table></div>`
+                  : `<p class="muted">${isMoney ? L('Oy qoʻshing: paket va toʻlovni tanlang.', 'Добавьте месяц: выберите пакет и оплату.', 'Add a month: choose the package and the payment.') : L('Hali paket yoʻq.', 'Пакета пока нет.', 'No package yet.')}</p>`}
+                ${isMoney ? `<p class="note">${L('Talaba oʻz paketini va toʻlovlarini koʻradi. Oʻqituvchilar summalarni koʻrmaydi.', 'Студент видит свой пакет и оплаты. Преподаватели суммы не видят.', 'The student sees their package and payments. Teachers don’t see amounts.')}</p>` : ''}</div>`;
           }
           v.innerHTML = `<button type="button" class="link back" data-back>${I('arrowl')}${L('Barcha talabalar', 'Все студенты', 'All students')}</button>
             <div class="card st-head"><div class="person"><span class="avatar">${esc(initials(s.name || s.email))}</span><div><b>${esc(s.name || s.email)}</b><span>${esc(s.email)}</span></div></div>${s.level ? `<span class="tag rose">Medical English · ${s.level.toUpperCase()}</span>` : ''}</div>
@@ -962,7 +1104,10 @@
               <form id="lesson-form">
                 <div class="row2"><label>${L('Sana', 'Дата', 'Date')}<input type="date" name="date" required value="${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}"></label>
                 <label>${L('Vaqt', 'Время', 'Time')}<input type="time" name="time" required value="${l ? two(d.getHours()) + ':' + two(d.getMinutes()) : '18:00'}"></label></div>
-                <label>${L('Davomiyligi', 'Длительность', 'Length')}<select name="minutes">${[30, 45, 60, 90, 120].map(m => `<option value="${m}"${(l ? l.minutes : 60) === m ? ' selected' : ''}>${m} ${L('daqiqa', 'минут', 'minutes')}</option>`).join('')}</select></label>
+                <div class="row2"><label>${L('Turi', 'Тип', 'Type')}<select name="kind">${['teach', 'speak', 'mentor'].map(k => `<option value="${k}"${(l ? l.kind || 'teach' : 'teach') === k ? ' selected' : ''}>${KT[k]}</option>`).join('')}</select></label>
+                <label>${L('Davomiyligi', 'Длительность', 'Length')}<select name="minutes">${[30, 45, 60, 90, 120].map(m => `<option value="${m}"${(l ? l.minutes : 60) === m ? ' selected' : ''}>${m} ${T('daqiqa', 'минут', 'minutes')}</option>`).join('')}</select></label></div>
+                ${isLimited ? '' : `<label>${L('Oʻqituvchi', 'Преподаватель', 'Teacher')}<select name="teacher"><option value="">${T('— Talabaning oʻqituvchisi', '— Преподаватель студента', '— The student’s teacher')}</option>${staffList.map(t => `<option value="${esc(t.id)}"${l && l.teacher && l.teacher.id === t.id ? ' selected' : ''}>${esc(t.name || t.email)}</option>`).join('')}</select></label>`}
+                ${l ? `<label>${L('Natija', 'Итог', 'Outcome')}<select name="status">${[['planned', T('Rejada', 'Запланировано', 'Planned')], ['taught', T('Oʻtildi', 'Проведено', 'Taught')], ['late', T('Kech bekor / kelmadi (hisoblanadi)', 'Поздняя отмена / неявка (засчитывается)', 'Late cancel / no-show (counts)')], ['cancelled', T('24+ soat oldin bekor (hisoblanmaydi)', 'Отмена за 24+ ч (не засчитывается)', 'Cancelled 24h+ before (not counted)')]].map(([k, t]) => `<option value="${k}"${(l.status || 'planned') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
                 <label>${L('Mavzu', 'Тема', 'Topic')}<input name="title" maxlength="140" value="${esc(l ? l.title : '')}" placeholder="${{ uz: 'Masalan: 5-hafta, 2-dars', ru: 'Например: Неделя 5, урок 2', en: 'e.g. Week 5, lesson 2' }[doc.lang] || ''}"></label>
                 <label>${L('Dars havolasi', 'Ссылка на урок', 'Lesson link')}<input name="link" type="url" inputmode="url" value="${esc(l ? l.link : '')}" placeholder="https://"></label>
                 <label>${L('Izoh (ixtiyoriy)', 'Заметка (необязательно)', 'Note (optional)')}<input name="note" maxlength="500" value="${esc(l ? l.note : '')}"></label>
@@ -974,13 +1119,23 @@
               const start = new Date(`${f.date.value}T${f.time.value}`);
               if (isNaN(start)) return formMsg(p, {});
               btn.disabled = true;
-              try { const r = await api('lesson-save', { body: { student: s.id, lesson: { id: l && l.id, start: start.toISOString(), minutes: +f.minutes.value, title: f.title.value, link: f.link.value.trim(), note: f.note.value } } }); closeDrawer(); saved('schedule', r.schedule); toast(L('Dars saqlandi.', 'Занятие сохранено.', 'Lesson saved.')); }
+              try { const r = await api('lesson-save', { body: { student: s.id, lesson: { id: l && l.id, start: start.toISOString(), minutes: +f.minutes.value, kind: f.kind.value, ...(f.status ? { status: f.status.value } : {}), ...(f.teacher && f.teacher.value ? { teacher: (t => ({ id: t.id, name: t.name || t.email }))(staffList.find(t => t.id === f.teacher.value)) } : {}), title: f.title.value, link: f.link.value.trim(), note: f.note.value } } }); closeDrawer(); saved('schedule', r.schedule); toast(L('Dars saqlandi.', 'Занятие сохранено.', 'Lesson saved.')); }
               catch (err) { formMsg(p, err); btn.disabled = false; }
             });
           };
           const q = sel => v.querySelectorAll(sel);
           q('[data-add-lesson]').forEach(b => b.addEventListener('click', () => lessonForm(null)));
           q('[data-edit-lesson]').forEach(b => b.addEventListener('click', () => lessonForm(S.schedule.find(x => x.id === b.dataset.editLesson))));
+          q('[data-mark]').forEach(b => b.addEventListener('click', async () => {
+            const [id, status] = b.dataset.mark.split('|'); b.disabled = true;
+            try { const r = await api('lesson-mark', { body: { student: s.id, id, status } }); S.balance = (await api('student', { params: { id: s.id } })).balance; saved('schedule', r.schedule); }
+            catch (e) { b.disabled = false; toast(errMsg(e)); }
+          }));
+          q('[data-assign-t]').forEach(sel => sel.addEventListener('change', async () => {
+            const t = staffList.find(x => x.id === sel.value);
+            try { const r = await api('assign', { body: { student: s.id, teacher: t ? { id: t.id, name: t.name || t.email } : null } }); S.teacher = r.teacher; crmCache = {}; toast(t ? L('Oʻqituvchi tayinlandi.', 'Преподаватель назначен.', 'Teacher assigned.') : L('Oʻqituvchi olib tashlandi.', 'Преподаватель снят.', 'Teacher removed.')); }
+            catch (e) { toast(errMsg(e)); }
+          }));
           q('[data-del-lesson]').forEach(b => b.addEventListener('click', async () => {
             if (!confirmTwice(b)) return;
             try { const r = await api('lesson-delete', { body: { student: s.id, id: b.dataset.delLesson } }); saved('schedule', r.schedule); } catch (e) { toast(errMsg(e)); }
@@ -1039,16 +1194,19 @@
             const now = new Date();
             const p = openDrawer(`${dHead(pm ? L('Toʻlovni oʻzgartirish', 'Изменить оплату', 'Edit payment') : L('Yangi oy', 'Новый месяц', 'New month'), esc(s.name || s.email))}
               <form id="pay-form">
+                <label>${L('Paket', 'Пакет', 'Package')}<select name="pkg"><option value="">${T('— Paketsiz (faqat toʻlov)', '— Без пакета (только оплата)', '— No package (payment only)')}</option>${(S.packages || []).map(x => `<option value="${esc(x.id)}" data-price="${x.price || ''}"${pm ? (pm.pkg === x.id ? ' selected' : '') : ''}>${esc(x.name)}${x.price ? ' · ' + money(x.price) : ''} · ${num(x.parts.teach)} ${UT('teach')} + ${num(x.parts.speak)} ${UT('speak')} + ${num(x.parts.mentor)}</option>`).join('')}</select></label>
                 <div class="row2"><label>${L('Oy', 'Месяц', 'Month')}<input type="month" name="month" required value="${esc(pm ? pm.month : now.getFullYear() + '-' + two(now.getMonth() + 1))}"></label>
                 <label>${L('Summa (USD)', 'Сумма (USD)', 'Amount (USD)')}<input type="number" name="amount" min="0" step="0.01" value="${pm ? pm.amount : ''}"></label></div>
-                <label>${L('Holat', 'Статус', 'Status')}<select name="status">${[['paid', L('Toʻlangan', 'Оплачено', 'Paid')], ['due', L('Kutilmoqda', 'Ожидается', 'Due')], ['overdue', L('Muddati oʻtgan', 'Просрочено', 'Overdue')]].map(([k]) => `<option value="${k}"${(pm ? pm.status : 'due') === k ? ' selected' : ''}>${{ paid: { uz: 'Toʻlangan', ru: 'Оплачено', en: 'Paid' }, due: { uz: 'Kutilmoqda', ru: 'Ожидается', en: 'Due' }, overdue: { uz: 'Muddati oʻtgan', ru: 'Просрочено', en: 'Overdue' } }[k][doc.lang] || k}</option>`).join('')}</select></label>
+                <label>${L('Holat', 'Статус', 'Status')}<select name="status">${[['paid', T('Toʻlangan', 'Оплачено', 'Paid')], ['partial', T('Qisman toʻlangan', 'Оплачено частично', 'Partly paid')], ['due', T('Kutilmoqda', 'Ожидается', 'Due')], ['overdue', T('Muddati oʻtgan', 'Просрочено', 'Overdue')]].map(([k, t]) => `<option value="${k}"${(pm ? pm.status : 'due') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
                 <label>${L('Izoh (ixtiyoriy)', 'Заметка (необязательно)', 'Note (optional)')}<input name="note" maxlength="300" value="${esc(pm ? pm.note : '')}"></label>
                 <p class="form-msg"></p>
                 <button class="btn btn-p" type="submit">${I('check')}${L('Saqlash', 'Сохранить', 'Save')}</button>
               </form>`);
-            p.querySelector('form').addEventListener('submit', async e => {
+            const pf = p.querySelector('form');
+            pf.pkg.addEventListener('change', () => { const o = pf.pkg.selectedOptions[0]; if (o && o.dataset.price && !pf.amount.value) pf.amount.value = o.dataset.price; });
+            pf.addEventListener('submit', async e => {
               e.preventDefault(); const f = e.target, btn = f.querySelector('[type=submit]'); btn.disabled = true;
-              try { const r = await api('pay-save', { body: { student: s.id, payment: { id: pm && pm.id, month: f.month.value, amount: f.amount.value, status: f.status.value, note: f.note.value } } }); closeDrawer(); saved('payments', r.payments); toast(L('Toʻlov saqlandi.', 'Оплата сохранена.', 'Payment saved.')); }
+              try { const r = await api('pay-save', { body: { student: s.id, payment: { id: pm && pm.id, pkg: f.pkg.value, month: f.month.value, amount: f.amount.value, status: f.status.value, note: f.note.value } } }); S.balance = (await api('student', { params: { id: s.id } })).balance; crmCache = {}; closeDrawer(); saved('payments', r.payments); toast(L('Toʻlov saqlandi.', 'Оплата сохранена.', 'Payment saved.')); }
               catch (err) { formMsg(p, err); btn.disabled = false; }
             });
           };
