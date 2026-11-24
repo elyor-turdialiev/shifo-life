@@ -1,9 +1,10 @@
 /* Shifo Academy data: lessons, homework (with photo and audio hand-ins) and payments.
    Storage: Netlify Blobs (store "academy"), strong consistency so every read sees the latest save.
    Access: the caller's Netlify Identity token is checked on every request.
-     student  -> own lessons, own homework (hand in), own payments (read only)
-     teacher  -> every student's lessons and homework; review hand-ins
-     admin    -> everything a teacher can do, plus payments
+     student          -> own lessons, homework (hand in), package balance and payments (read only)
+     teacher          -> students assigned to them (or not yet assigned): lessons, homework, marking; no money
+     manager          -> every student; payments; choose each student's teacher
+     admin, ceo       -> everything, plus teachers' hours and the package list
    Lesson checks: every lesson of the ShifoLife books has a short auto-marked check. The answers
    (KEYS) stay on the server; a student's results are saved, a teacher's tries are not.        */
 import { getStore } from '@netlify/blobs';
@@ -41,9 +42,47 @@ async function whoIs(req) {
     if (!res.ok) return null;
     const u = await res.json();
     const roles = ((u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-    const admin = roles.includes('admin');
-    return { id: u.id, email: u.email, name: String((u.user_metadata && u.user_metadata.full_name) || '').trim(), roles, admin, teacher: admin || roles.includes('teacher'), level: ['b1', 'b2', 'c1'].find(l => roles.includes(l)) || '' };
+    const boss = roles.includes('admin') || roles.includes('ceo'), manager = roles.includes('manager');
+    const staff = boss || manager || roles.includes('teacher');
+    return { id: u.id, email: u.email, name: String((u.user_metadata && u.user_metadata.full_name) || '').trim(), roles,
+      admin: boss, boss, money: boss || manager, manage: boss || manager, teacher: staff, limited: staff && !boss && !manager,
+      level: ['b1', 'b2', 'c1'].find(l => roles.includes(l)) || '' };
   } catch (e) { return null; }
+}
+
+/* ---------- CRM: packages, lessons used and left ----------
+   A package is bought for a month. Teaching and speaking are counted in hours (lesson length),
+   mentoring in sessions. A lesson counts once it is taught, or when the student cancels late or
+   does not come ("late"); a lesson cancelled 24h+ before ("cancelled") is not counted.
+   Hours left at the end of a paid month carry over to the next month once, then expire. */
+const PARTS = ['teach', 'speak', 'mentor'];
+const DEFAULT_PACKAGES = [
+  { id: 'general', name: 'General English', price: 249.99, parts: { teach: 8, speak: 2, mentor: 1 } },
+  { id: 'medical', name: 'Medical English', price: 299.99, parts: { teach: 8, speak: 2, mentor: 1 } },
+  { id: 'intense', name: 'Medical English Intense', price: 359.99, parts: { teach: 12, speak: 3, mentor: 2 } }
+];
+const STATUSES = ['planned', 'taught', 'late', 'cancelled'];
+const monthKey = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' }).slice(0, 7);
+const r2 = n => Math.round(n * 100) / 100;
+const counted = l => l.status === 'taught' || l.status === 'late';
+const amountOf = l => (l.kind || 'teach') === 'mentor' ? 1 : (l.minutes || 60) / 60;
+function balance(pkgs, payments, schedule) {
+  const used = {}, months = new Set();
+  payments.filter(p => p.pkg).forEach(p => months.add(p.month));
+  schedule.filter(counted).forEach(l => { const m = monthKey(l.start); months.add(m); const u = used[m] || (used[m] = { teach: 0, speak: 0, mentor: 0 }); u[l.kind || 'teach'] += amountOf(l); });
+  const carry = { teach: 0, speak: 0, mentor: 0 }, out = [];
+  [...months].sort().forEach(m => {
+    const pay = payments.find(p => p.month === m && p.pkg), P = pay && pkgs.find(x => x.id === pay.pkg);
+    const row = { month: m, pkg: P ? P.id : '', name: P ? P.name : '', status: pay ? pay.status : '', parts: {} };
+    PARTS.forEach(k => {
+      const own = P ? +P.parts[k] || 0 : 0, c = carry[k], u = r2((used[m] || {})[k] || 0);
+      const fromCarry = Math.min(c, u), fromOwn = u - fromCarry, ownLeft = Math.max(own - fromOwn, 0);
+      row.parts[k] = { own, carry: r2(c), used: u, left: r2(ownLeft + c - fromCarry), over: r2(Math.max(fromOwn - own, 0)) };
+      carry[k] = r2(ownLeft);
+    });
+    out.push(row);
+  });
+  return out.reverse();
 }
 
 /* public list of published student reviews, for the Academy page */
@@ -69,6 +108,11 @@ export default async (req) => {
   const write = (sid, kind, list) => store.setJSON(`s/${sid}/${kind}`, list);
   const body = async () => { try { return await req.json(); } catch (e) { return {}; } };
 
+  const getPkgs = async () => (await store.get('crm/packages', { type: 'json' })) || DEFAULT_PACKAGES;
+  const getAssign = async () => (await store.get('crm/assign', { type: 'json' })) || {};
+  /* a teacher (not admin, CEO or account manager) reaches only students assigned to them, or not yet assigned */
+  const allowed = (sid, assign) => !me.limited || !assign[sid] || assign[sid].id === me.id;
+
   /* whose data: students only ever reach their own; teachers name a student */
   const target = sid => {
     if (!me.teacher) return me.id;
@@ -77,8 +121,11 @@ export default async (req) => {
   };
   const view = async sid => {
     const [schedule, homework, payments] = await Promise.all([read(sid, 'schedule'), read(sid, 'homework'), read(sid, 'payments')]);
-    const out = { schedule, homework, checks: (await store.get(`s/${sid}/checks`, { type: 'json' })) || {} };
-    if (!me.teacher || me.admin) out.payments = payments;   // students see their own; among staff only admin
+    const [pkgs, assign] = await Promise.all([getPkgs(), getAssign()]);
+    const out = { schedule, homework, checks: (await store.get(`s/${sid}/checks`, { type: 'json' })) || {},
+      balance: balance(pkgs, payments, schedule), packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, ...(me.money || !me.teacher ? { price: p.price } : {}) })),
+      teacher: assign[sid] || null };
+    if (!me.teacher || me.money) out.payments = payments;   // students see their own; among staff: CEO, admin, account managers
     return out;
   };
 
@@ -90,6 +137,7 @@ export default async (req) => {
       if (action === 'student') {
         if (!me.teacher) return fail(403, 'forbidden');
         const sid = target(q.id); if (!sid) return fail(400, 'student');
+        if (!allowed(sid, await getAssign())) return fail(403, 'not_your_student');
         return json(200, await view(sid));
       }
 
@@ -97,7 +145,8 @@ export default async (req) => {
         let level = String(q.level || '').toLowerCase();
         if (!me.teacher) { if (!me.level) return fail(403, 'no_level'); level = me.level; }
         if (!LESSONS[level]) level = 'b1';
-        const sid = me.teacher ? (q.student && ID.test(q.student) ? q.student : '') : me.id;
+        let sid = me.teacher ? (q.student && ID.test(q.student) ? q.student : '') : me.id;
+        if (sid && me.teacher && !allowed(sid, await getAssign())) sid = '';
         const checks = sid ? (await store.get(`s/${sid}/checks`, { type: 'json' })) || {} : {};
         return json(200, { level, lessons: LESSONS[level], checks });
       }
@@ -112,22 +161,58 @@ export default async (req) => {
         return json(200, { reviews: Object.values(all).sort((a, b) => (a.ok - b.ok) || b.at.localeCompare(a.at)) });
       }
 
-      if (action === 'board') {                       // teacher overview: hand-ins to review + upcoming lessons
+      if (action === 'board') {                       // teacher overview: hand-ins to review, upcoming lessons, lessons to mark
         if (!me.teacher) return fail(403, 'forbidden');
-        const { blobs } = await store.list({ prefix: 's/' });
-        const review = [], lessons = [], now = Date.now();
+        const [{ blobs }, assign] = await Promise.all([store.list({ prefix: 's/' }), getAssign()]);
+        const review = [], lessons = [], toMark = [], now = Date.now();
         await Promise.all(blobs.map(async b => {
           const [, sid, kind] = b.key.split('/');
+          if (!allowed(sid, assign)) return;
           if (kind === 'homework') (await read(sid, 'homework')).forEach(h => { if (h.submission) review.push({ student: sid, ...h }); });
-          if (kind === 'schedule') (await read(sid, 'schedule')).forEach(l => { if (Date.parse(l.start) + (l.minutes || 60) * 60000 > now) lessons.push({ student: sid, ...l }); });
+          if (kind === 'schedule') (await read(sid, 'schedule')).forEach(l => {
+            const end = Date.parse(l.start) + (l.minutes || 60) * 60000;
+            if (end > now) lessons.push({ student: sid, ...l });
+            else if (!l.status || l.status === 'planned') { if (!me.limited || !l.teacher || l.teacher.id === me.id) toMark.push({ student: sid, ...l }); }
+          });
         }));
         lessons.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+        toMark.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
         review.sort((a, b) => Date.parse(b.submission.at) - Date.parse(a.submission.at));
-        return json(200, { review, lessons: lessons.slice(0, 50) });
+        return json(200, { review, lessons: lessons.slice(0, 50), toMark: toMark.slice(0, 50) });
+      }
+
+      if (action === 'crm') {                         // one row per student, teachers' hours, money (by role)
+        if (!me.teacher) return fail(403, 'forbidden');
+        const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(q.month || '') ? q.month : monthKey(Date.now());
+        const [{ blobs }, assign, pkgs] = await Promise.all([store.list({ prefix: 's/' }), getAssign(), getPkgs()]);
+        const every = [...new Set(blobs.map(b => b.key.split('/')[1]).concat(Object.keys(assign)))].filter(sid => ID.test(sid));
+        const sids = every.filter(sid => allowed(sid, assign)), hidden = every.filter(sid => !allowed(sid, assign));
+        const rows = {}, teachers = {}, totals = { paid: 0, due: 0, overdue: 0, partial: 0, count: 0 }, now = Date.now();
+        await Promise.all(sids.map(async sid => {
+          const [schedule, payments] = await Promise.all([read(sid, 'schedule'), read(sid, 'payments')]);
+          const bal = balance(pkgs, payments, schedule), cur = bal.find(x => x.month === month) || null;
+          const pay = payments.find(p => p.month === month);
+          const past = schedule.filter(l => Date.parse(l.start) < now), next = schedule.find(l => Date.parse(l.start) >= now);
+          rows[sid] = { teacher: assign[sid] || null, month: cur, next: next ? next.start : null, last: past.length ? past[past.length - 1].start : null,
+            toMark: past.filter(l => !l.status || l.status === 'planned').length,
+            ...(me.money ? { pay: pay ? { status: pay.status, amount: pay.amount, pkg: pay.pkg || '' } : null } : {}) };
+          if (me.money && pay) { totals[pay.status] = r2((totals[pay.status] || 0) + (+pay.amount || 0)); totals.count++; }
+          schedule.filter(l => counted(l) && monthKey(l.start) === month).forEach(l => {
+            const t = l.teacher || assign[sid] || { id: '-', name: '' };
+            if (me.limited && t.id !== me.id) return;
+            const T = teachers[t.id] || (teachers[t.id] = { id: t.id, name: t.name, lessons: 0, late: 0, teach: 0, speak: 0, mentor: 0, students: [] });
+            T.lessons++; if (l.status === 'late') T.late++;
+            T[l.kind || 'teach'] = r2(T[l.kind || 'teach'] + amountOf(l));
+            if (!T.students.includes(sid)) T.students.push(sid);
+          });
+        }));
+        return json(200, { month, rows, packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, ...(me.money ? { price: p.price } : {}) })),
+          teachers: me.boss || me.limited ? Object.values(teachers) : [], hidden, ...(me.money ? { totals } : {}) });
       }
 
       if (action === 'file') {
         const sid = target(q.student || me.id); if (!sid) return fail(400, 'student');
+        if (me.teacher && !allowed(sid, await getAssign())) return fail(403, 'not_your_student');
         const key = String(q.key || '');
         if (!key.startsWith(`f/${sid}/`) || key.includes('..')) return fail(403, 'forbidden');
         const r = await store.getWithMetadata(key, { type: 'arrayBuffer' });
@@ -216,7 +301,41 @@ export default async (req) => {
 
     /* everything below is staff only */
     if (!me.teacher) return fail(403, 'forbidden');
+
+    if (action === 'packages-save') {                 // CEO and admin edit the package list
+      if (!me.boss) return fail(403, 'admin');
+      const list = (Array.isArray(b.packages) ? b.packages : []).slice(0, 12).map(p => ({
+        id: /^[a-z0-9-]{2,30}$/.test(p.id || '') ? p.id : uid().slice(0, 8), name: str(p.name, 80),
+        price: Math.max(0, Math.round((+p.price || 0) * 100) / 100),
+        parts: Object.fromEntries(PARTS.map(k => [k, Math.max(0, Math.min(200, Math.round((+((p.parts || {})[k]) || 0) * 4) / 4))]))
+      })).filter(p => p.name);
+      if (!list.length) return fail(400, 'packages');
+      await store.setJSON('crm/packages', list);
+      return json(200, { packages: list });
+    }
+
     const sid = target(b.student); if (!sid) return fail(400, 'student');
+    const ASSIGN = await getAssign();
+    if (!allowed(sid, ASSIGN)) return fail(403, 'not_your_student');
+
+    if (action === 'assign') {                        // CEO, admin, account managers choose the student's teacher
+      if (!me.manage) return fail(403, 'manager');
+      const t = b.teacher;
+      if (t && ID.test(t.id || '')) ASSIGN[sid] = { id: t.id, name: str(t.name, 100) }; else delete ASSIGN[sid];
+      await store.setJSON('crm/assign', ASSIGN);
+      return json(200, { teacher: ASSIGN[sid] || null });
+    }
+
+    if (action === 'lesson-mark') {                   // after the lesson: taught, late cancel / no-show, cancelled in time
+      if (!STATUSES.includes(b.status)) return fail(400, 'status');
+      const list = await read(sid, 'schedule');
+      const l = list.find(x => x.id === b.id); if (!l) return fail(404, 'lesson');
+      if (me.limited && l.teacher && l.teacher.id !== me.id) return fail(403, 'not_your_lesson');
+      l.status = b.status; l.marked = { by: me.name || me.email, at: new Date().toISOString() };
+      if (!l.teacher) l.teacher = ASSIGN[sid] || (me.limited ? { id: me.id, name: me.name || me.email } : null);
+      await write(sid, 'schedule', list);
+      return json(200, { schedule: list });
+    }
 
     if (action === 'lesson-save') {
       const l = b.lesson || {};
@@ -225,14 +344,22 @@ export default async (req) => {
       const link = str(l.link, 500);
       if (link && !/^https?:\/\//i.test(link)) return fail(400, 'link');
       const list = await read(sid, 'schedule');
-      const item = { id: l.id && list.some(x => x.id === l.id) ? l.id : uid(), start: start.toISOString(),
-        minutes: Math.min(240, Math.max(15, +l.minutes || 60)), title: str(l.title, 140), link, note: str(l.note, 500) };
+      const old = list.find(x => x.id === l.id);
+      if (me.limited && old && old.teacher && old.teacher.id !== me.id) return fail(403, 'not_your_lesson');
+      const tIn = l.teacher && ID.test(l.teacher.id || '') ? { id: l.teacher.id, name: str(l.teacher.name, 100) } : null;
+      const teacher = me.limited ? { id: me.id, name: me.name || me.email } : tIn || (old && old.teacher) || ASSIGN[sid] || null;
+      const item = { id: old ? old.id : uid(), start: start.toISOString(),
+        minutes: Math.min(240, Math.max(15, +l.minutes || 60)), title: str(l.title, 140), link, note: str(l.note, 500),
+        kind: PARTS.includes(l.kind) ? l.kind : (old && old.kind) || 'teach', status: STATUSES.includes(l.status) ? l.status : (old && old.status) || 'planned',
+        teacher, ...(old && old.marked ? { marked: old.marked } : {}) };
       const next = list.filter(x => x.id !== item.id).concat(item).sort((x, y) => Date.parse(x.start) - Date.parse(y.start));
       await write(sid, 'schedule', next);
       return json(200, { schedule: next });
     }
     if (action === 'lesson-delete') {
-      const next = (await read(sid, 'schedule')).filter(x => x.id !== b.id);
+      const list = await read(sid, 'schedule'), gone = list.find(x => x.id === b.id);
+      if (me.limited && gone && gone.teacher && gone.teacher.id !== me.id) return fail(403, 'not_your_lesson');
+      const next = list.filter(x => x.id !== b.id);
       await write(sid, 'schedule', next);
       return json(200, { schedule: next });
     }
@@ -268,7 +395,7 @@ export default async (req) => {
     }
 
     if (action === 'pay-save' || action === 'pay-delete') {
-      if (!me.admin) return fail(403, 'admin');
+      if (!me.money) return fail(403, 'admin');
       const list = await read(sid, 'payments');
       if (action === 'pay-delete') {
         const next = list.filter(x => x.id !== b.id);
@@ -277,8 +404,11 @@ export default async (req) => {
       }
       const p = b.payment || {};
       if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(p.month || '')) return fail(400, 'month');
-      if (!['paid', 'due', 'overdue'].includes(p.status)) return fail(400, 'status');
-      const item = { id: p.id && list.some(x => x.id === p.id) ? p.id : uid(), month: p.month,
+      if (!['paid', 'partial', 'due', 'overdue'].includes(p.status)) return fail(400, 'status');
+      const pkgs = await getPkgs();
+      const pkg = pkgs.some(x => x.id === p.pkg) ? p.pkg : '';
+      if (pkg && list.some(x => x.month === p.month && x.pkg && x.id !== p.id)) return fail(409, 'month_taken');
+      const item = { id: p.id && list.some(x => x.id === p.id) ? p.id : uid(), month: p.month, pkg,
         amount: Math.max(0, Math.round((+p.amount || 0) * 100) / 100), status: p.status, note: str(p.note, 300) };
       const next = list.filter(x => x.id !== item.id).concat(item).sort((x, y) => y.month.localeCompare(x.month));
       await write(sid, 'payments', next);

@@ -111,8 +111,8 @@ async function whoIs(req) {
     if (!res.ok) return null;
     const u = await res.json();
     const roles = ((u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-    const admin = roles.includes('admin');
-    return { id: u.id, roles, admin, teacher: admin || roles.includes('teacher'), level: ['c1', 'b2', 'b1'].find(l => roles.includes(l)) || 'b1' };
+    const admin = roles.includes('admin') || roles.includes('ceo');
+    return { id: u.id, roles, admin, teacher: admin || roles.includes('teacher') || roles.includes('manager'), limited: !admin && !roles.includes('manager') && roles.includes('teacher'), level: ['c1', 'b2', 'b1'].find(l => roles.includes(l)) || 'b1' };
   } catch (e) { return null; }
 }
 
@@ -203,6 +203,8 @@ export default async (req) => {
   const store = getStore({ name: 'academy', consistency: 'strong' });
   const read = async sid => (await store.get(`s/${sid}/speaking`, { type: 'json' })) || [];
   const write = (sid, list) => store.setJSON(`s/${sid}/speaking`, list.slice(0, 200));
+  /* a plain teacher reaches only students assigned to them, or not yet assigned (CRM, set by managers) */
+  const allowed = async sid => { if (!me.limited) return true; const a = (await store.get('crm/assign', { type: 'json' })) || {}; return !a[sid] || a[sid].id === me.id; };
   const summary = s => ({ id: s.id, scenario: s.scenario, level: s.level, started: s.started, ended: s.ended || null, turns: s.turns.filter(t => t.r === 'me').length, eval: s.eval || null, note: s.note || null });
 
   try {
@@ -210,6 +212,7 @@ export default async (req) => {
       if (action === 'list') {
         const sid = me.teacher ? q.student : me.id;
         if (!sid || !ID.test(sid)) return fail(400, 'student');
+        if (me.teacher && !(await allowed(sid))) return fail(403, 'not_your_student');
         const list = await read(sid);
         const usedToday = list.filter(s => dayOf(s.started) === today()).length;
         const scenarios = SCENARIOS.map(({ id, level, title, who, goal }) => ({ id, level, title, who, goal }));
@@ -218,6 +221,7 @@ export default async (req) => {
       if (action === 'session') {
         const sid = me.teacher ? q.student : me.id;
         if (!sid || !ID.test(sid)) return fail(400, 'student');
+        if (me.teacher && !(await allowed(sid))) return fail(403, 'not_your_student');
         const s = (await read(sid)).find(x => x.id === q.id);
         return s ? json(200, { session: s }) : fail(404, 'missing');
       }

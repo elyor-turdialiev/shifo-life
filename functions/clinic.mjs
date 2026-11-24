@@ -1,6 +1,6 @@
 /* Shifo Clinic: online diabetes consultation bookings.
    Public:  free times (action=slots) and booking a time (action=book).
-   Staff:   Netlify Identity users with role "admin" or "clinic" see bookings, change them, and set working hours.
+   Staff:   Netlify Identity users with role "admin", "ceo" or "clinic" see bookings, change them, and set working hours.
    Storage: Netlify Blobs store "clinic" (strong consistency).
      settings          working hours, consultation length, days off
      b/<id>            one booking
@@ -65,7 +65,7 @@ async function staff(req) {
     if (!res.ok) return null;
     const u = await res.json();
     const roles = ((u.app_metadata && u.app_metadata.roles) || []).map(r => String(r).toLowerCase().trim());
-    return roles.includes('admin') || roles.includes('clinic') ? { email: u.email } : null;
+    return roles.includes('admin') || roles.includes('ceo') || roles.includes('clinic') ? { email: u.email } : null;
   } catch (e) { return null; }
 }
 
