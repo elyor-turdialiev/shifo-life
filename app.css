@@ -756,3 +756,9 @@ button.link{background:none;border:0;padding:0;font:inherit;font-weight:600;curs
 
 /* count badges: never show an empty one (no red flash while numbers load) */
 .count:empty,.count[hidden]{display:none !important}
+
+/* Funnel: what the person chose on the website form */
+.lead-det{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 16px;margin:14px 0 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.lead-det div{min-width:0}
+.lead-det dt{font-size:.78rem;color:var(--muted);margin:0}
+.lead-det dd{margin:2px 0 0;font-weight:600;color:var(--ink);font-size:.93rem}

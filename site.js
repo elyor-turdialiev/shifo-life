@@ -192,38 +192,99 @@ const CONFIG = {
     }).catch(() => {});
   });
 
-  /* ---------- Contact form ---------- */
-  const form = document.getElementById('contact-form');
-  if (form) {
-    const sel = form.querySelector('[name="interest"]');
-    const fromHash = () => {
-      const h = location.hash.slice(1);
-      if (h && sel.querySelector('option[value="' + h + '"]')) sel.value = h;
+  /* ---------- Application forms (Academy, Abroad, Contact) ---------- */
+  // Old links (Instagram, bookmarks) pointed every field at contact.html#<field>; send them to the field's own form.
+  if (document.querySelector('form[name="contact"]')) {
+    const h = location.hash.slice(1);
+    const go = h === 'clinic' ? 'book.html' : h === 'abroad' ? 'abroad.html#apply'
+      : h === 'academy' ? 'academy.html#apply' : /^academy-/.test(h) ? 'academy.html#apply-' + h.slice(8) : '';
+    if (go) { location.replace(go); return; }
+  }
+  const pick = (form, name, value) => {
+    const r = form.querySelector('input[type="radio"][name="' + name + '"][value="' + value + '"]');
+    if (r) r.checked = true;
+    return !!r;
+  };
+  const fromHash = () => {
+    const h = location.hash.slice(1);
+    const apply = document.getElementById('apply');
+    const m = h.match(/^apply-(.+)$/);
+    if (m && apply) {
+      const f = apply.querySelector('form.lead-form');
+      if (f && pick(f, 'plan', m[1])) apply.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    const c = document.querySelector('form[name="contact"]');
+    if (c) pick(c, 'topic', { media: 'media', 'media-guest': 'guest', other: 'other' }[h] || '');
+  };
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  // A plan's button opens a booking sheet right there: the Apply form moves into it with that plan chosen,
+  // and goes back to its place on the page when the sheet closes. Without <dialog> the link scrolls to the form.
+  const sheet = document.getElementById('apply-sheet');
+  const home = document.querySelector('#apply .formcard');
+  const aform = home && home.querySelector('form.lead-form');
+  if (sheet && aform && typeof sheet.showModal === 'function') {
+    const slot = sheet.querySelector('[data-sheet-slot]');
+    const openSheet = a => {
+      const card = a.closest('.plan');   // the phone bar has no plan: the sheet then shows the plan choice
+      if (card) pick(aform, 'plan', a.dataset.plan);
+      sheet.querySelector('[data-sheet-name]').textContent = card ? card.querySelector('h3').textContent : 'Shifo Academy';
+      sheet.querySelector('[data-sheet-price]').textContent = card ? card.querySelector('.price').innerText.replace(/\s+/g, ' ').trim() : '';
+      sheet.querySelector('[data-sheet-change]').hidden = !card;
+      aform.querySelector('.form-msg').className = 'form-msg';
+      aform.classList.toggle('in-sheet', !!card); aform.classList.add('sheeted'); slot.appendChild(aform);
+      sheet.showModal(); document.documentElement.classList.add('sheet-open');
+      setTimeout(() => aform.elements.name.focus({ preventScroll: true }), 60);
     };
-    fromHash();
-    window.addEventListener('hashchange', fromHash);
+    sheet.addEventListener('close', () => { aform.classList.remove('in-sheet', 'sheeted'); home.appendChild(aform); document.documentElement.classList.remove('sheet-open'); });
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
+    sheet.querySelector('[data-sheet-close]').addEventListener('click', () => sheet.close());
+    sheet.querySelector('[data-sheet-change]').addEventListener('click', () => {
+      pick(aform, 'plan', 'unsure'); sheet.close();
+      document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('a[data-plan]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); openSheet(a); }));
+    // Phone: a small "Free trial" bar once the plans are on screen, hidden again at the form itself
+    const bar = document.querySelector('[data-mbar]'), plans = document.getElementById('plans'), apply = document.getElementById('apply');
+    if (bar && plans && 'IntersectionObserver' in window) {
+      let past = false, atForm = false;
+      const sync = () => { bar.hidden = !(past && !atForm); };
+      new IntersectionObserver(([e]) => { past = e.isIntersecting || e.boundingClientRect.top < 0; sync(); }).observe(plans);
+      new IntersectionObserver(([e]) => { atForm = e.isIntersecting; sync(); }).observe(apply);
+    }
+  } else {
+    document.querySelectorAll('a[href^="#apply-"]').forEach(a => a.addEventListener('click', e => {
+      if (location.hash === a.getAttribute('href')) { e.preventDefault(); fromHash(); }
+    }));
+  }
 
-    const msg = document.getElementById('form-msg');
-    const M = {
-      need: { uz: 'Siz bilan bogʻlanishimiz uchun ismingiz va telefon raqamingiz yoki Telegram’ingizni yozing.', ru: 'Укажите имя и номер телефона или Telegram, чтобы мы могли с вами связаться.', en: 'Add your name and a phone number or Telegram so we can contact you.' },
-      ok: { uz: 'Soʻrovingiz yuborildi. Tez orada siz bilan bogʻlanamiz.', ru: 'Заявка отправлена. Мы скоро с вами свяжемся.', en: 'Request sent. We will contact you soon.' },
-      err: { uz: 'Soʻrov yuborilmadi. Internetni tekshirib, qayta urinib koʻring.', ru: 'Заявка не отправлена. Проверьте интернет и попробуйте ещё раз.', en: 'Your request was not sent. Check your connection and try again.' },
-      sending: { uz: 'Yuborilmoqda…', ru: 'Отправляем…', en: 'Sending…' }
-    };
-    const show = (k, cls) => { msg.textContent = M[k][doc.lang]; msg.className = 'form-msg ' + cls; };
+  const M = {
+    need: { uz: 'Siz bilan bogʻlanishimiz uchun ismingiz va telefon raqamingiz yoki Telegram’ingizni yozing.', ru: 'Укажите имя и номер телефона или Telegram, чтобы мы могли с вами связаться.', en: 'Add your name and a phone number or Telegram so we can contact you.' },
+    ok: { uz: 'Arizangiz yuborildi. Tez orada siz bilan bogʻlanamiz.', ru: 'Заявка отправлена. Мы скоро с вами свяжемся.', en: 'Sent. We will contact you soon.' },
+    err: { uz: 'Yuborilmadi. Internetni tekshirib, qayta urinib koʻring.', ru: 'Не отправлено. Проверьте интернет и попробуйте ещё раз.', en: 'Not sent. Check your connection and try again.' }
+  };
+  document.querySelectorAll('form.lead-form').forEach(form => {
+    const msg = form.querySelector('.form-msg');
+    const show = (k, cls) => { msg.textContent = M[k][doc.lang] || M[k].en; msg.className = 'form-msg ' + cls; };
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      if (!form.elements.name.value.trim() || !form.elements.phone.value.trim()) return show('need', 'err');
+      if (!form.elements.name.value.trim() || !form.elements.phone.value.trim()) {
+        show('need', 'err');
+        (form.elements.name.value.trim() ? form.elements.phone : form.elements.name).focus();
+        return;
+      }
       const submit = form.querySelector('button[type="submit"]');
       submit.disabled = true; msg.className = 'form-msg';
       try {
         const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(form)).toString() });
         if (!res.ok) throw new Error(res.status);
-        form.reset(); show('ok', 'ok');
+        // keep the chosen options visible; clear only what was typed
+        form.querySelectorAll('input:not([type="radio"]):not([type="hidden"]), textarea').forEach(el => { el.value = ''; });
+        show('ok', 'ok');
       } catch (err) { show('err', 'err'); }
       finally { submit.disabled = false; }
     });
-  }
+  });
 
   const y = document.getElementById('year');
   if (y) y.textContent = new Date().getFullYear();

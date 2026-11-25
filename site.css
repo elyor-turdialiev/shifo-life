@@ -255,6 +255,14 @@ html[lang="en"] [data-l]:not([data-l="en"]){display:none !important}
 .plans .price b{font-size:2rem}
 .plans .price{flex-wrap:wrap;column-gap:6px;row-gap:0}
 .plans .plan dt{white-space:nowrap}
+/* Line up name, text, the hours table and the price across the cards */
+@supports (grid-template-rows:subgrid){
+  @media (min-width:1001px){
+    .plans .plan{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0}
+    .plans .plan .for{min-height:0}
+    .plans .plan .price{align-self:end}
+  }
+}
 @media (max-width:1180px) and (min-width:1001px){.plans{grid-template-columns:repeat(2,1fr)}}
 .plan{position:relative;background:#fff;border-radius:var(--r-lg);padding:34px 30px 30px;display:flex;flex-direction:column;border:1px solid var(--line)}
 .plan h3{font-size:1.35rem}
@@ -272,10 +280,6 @@ html[lang="en"] [data-l]:not([data-l="en"]){display:none !important}
 .plan.feature .for,.plan.feature dt,.plan.feature .price span{color:rgba(255,255,255,.75)}
 .plan.feature dl div{background:rgba(255,255,255,.1)}
 .badge{position:absolute;top:-13px;left:30px;font-size:.78rem;font-weight:700;background:var(--gold);color:#fff;border-radius:999px;padding:5px 12px;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
-.inc{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px}
-.inc li{display:flex;gap:12px;align-items:center;font-weight:600;color:var(--ink);background:var(--blush);border-radius:16px;padding:16px 18px;font-size:.97rem}
-.inc .fi{width:38px;height:38px;border-radius:11px;background:#fff;color:var(--garnet);display:grid;place-items:center;flex:none}
-.inc .fi .ic{width:19px;height:19px}
 
 /* Home: field cards */
 .fields{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
@@ -388,6 +392,87 @@ form .btn{justify-self:start}
 .channels a{color:var(--garnet);font-weight:600}
 .hp{position:absolute;left:-9999px}
 
+/* Tap-to-choose options */
+.opts-f{border:0;margin:0;padding:0;min-width:0}
+.opts-f legend{font-weight:600;font-size:.93rem;color:var(--ink);padding:0;margin-bottom:9px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts label{display:block;position:relative;font-weight:500;gap:0}
+.opts input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.opts span{display:block;padding:9px 15px;border:1.5px solid var(--line);border-radius:999px;background:#FBF8F8;color:var(--text);font-size:.93rem;cursor:pointer;transition:border-color .15s,background .15s,color .15s;line-height:1.3}
+.opts label:hover span{border-color:#E4CFD2}
+.opts input:checked + span{background:var(--garnet);border-color:var(--garnet);color:#fff}
+.opts input:focus-visible + span{box-shadow:0 0 0 4px rgba(134,24,47,.18)}
+
+/* A field's own application block */
+.apply-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:56px;align-items:start}
+.apply-intro h2{font-size:clamp(1.8rem,3.4vw,2.6rem);margin:18px 0 12px}
+.apply-intro .lede{max-width:44ch}
+.next-steps{list-style:none;padding:0;margin:32px 0 0;display:grid;gap:0}
+.next-steps li{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+.next-steps li:first-child{border-top:0}
+.next-steps li > span{width:32px;height:32px;border-radius:50%;background:var(--rose);color:var(--garnet);font-weight:700;display:grid;place-items:center;flex:none;font-size:.95rem}
+.next-steps b{display:block;color:var(--ink)}
+.next-steps small{display:block;color:var(--muted);font-size:.93rem;margin-top:2px}
+.sec.alt .formcard{border-color:transparent}
+
+.submit-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
+.form-note{display:flex;gap:8px;align-items:center;margin:0;color:var(--muted);font-size:.9rem}
+.form-note .ic{width:18px;height:18px;color:var(--ok)}
+
+/* Booking sheet: a plan's button opens the Apply form right there */
+.sheet{border:0;padding:0;margin:auto;width:min(620px,calc(100% - 32px));max-height:calc(100dvh - 48px);border-radius:var(--r-lg);background:#fff;color:var(--text);box-shadow:0 40px 80px -30px rgba(31,20,22,.55);overflow:auto;overscroll-behavior:contain}
+.sheet::backdrop{background:rgba(31,20,22,.45);backdrop-filter:blur(2px)}
+.sheet-in{padding:28px 32px 26px}
+.sheet-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:18px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.sheet-top .k{margin:0 0 4px;color:var(--garnet);font-weight:600;font-size:.88rem}
+.sheet-top h3{font-size:1.45rem;margin:0}
+.sheet-price{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.sheet-x{border:0;background:var(--blush);color:var(--ink);width:40px;height:40px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none}
+.sheet-x:hover{background:var(--rose)}
+.sheet-x .ic{width:18px;height:18px}
+.sheet-other{margin-top:16px;font-size:.93rem}
+.sheet-other[hidden]{display:none}
+.lead-form.in-sheet [data-f="plan"]{display:none}
+.lead-form.in-sheet textarea{min-height:84px}
+button.link{background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer}
+html.sheet-open{overflow:hidden}
+.mbar{display:none}
+@media (max-width:640px){
+  .mbar:not([hidden]){display:flex;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:60;align-items:center;justify-content:space-between;gap:12px;padding:10px 10px 10px 18px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 40px -18px rgba(31,20,22,.45)}
+  .mbar b{display:block;color:var(--ink);font-size:.95rem;line-height:1.2}
+  .mbar small{color:var(--muted);font-size:.82rem}
+  .mbar .btn{padding:11px 20px}
+}
+@media (max-width:640px){
+  .sheet{width:100%;max-width:none;margin:auto 0 0;max-height:92dvh;border-radius:24px 24px 0 0}
+  .sheet-in{padding:22px 20px calc(20px + env(safe-area-inset-bottom))}
+  .sheet .submit-row .btn{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:no-preference){
+  .sheet[open]{animation:sheet-in .22s ease-out}
+  @keyframes sheet-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+}
+
+/* Why Shifo Academy */
+.usp{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:8px}
+.usp article{border-top:3px solid var(--garnet);padding-top:24px}
+.usp-i{width:48px;height:48px;border-radius:14px;background:var(--rose);color:var(--garnet);display:grid;place-items:center;margin-bottom:18px}
+.usp-i .ic{width:24px;height:24px}
+.usp h3{font-size:1.25rem;margin-bottom:10px;color:var(--ink)}
+.usp p{color:var(--text);margin:0}
+.plans-note{display:flex;gap:12px;align-items:flex-start;margin:28px auto 0;max-width:760px;color:var(--muted);font-size:.97rem}
+.plans-note .ic{width:20px;height:20px;color:var(--garnet);flex:none;margin-top:3px}
+
+/* Contact: shortcuts to each field's own form */
+.go-list{display:grid;gap:10px;margin:28px 0 8px}
+.go{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
+.go:hover{border-color:var(--garnet)}
+.go .fi{width:40px;height:40px;border-radius:12px;background:var(--rose);color:var(--garnet);display:grid;place-items:center;flex:none}
+.go > span:nth-child(2){flex:1;min-width:0}
+.go b{display:block;font-size:1rem}
+.go small{display:block;color:var(--muted);font-size:.9rem}
+.go > .ic{color:var(--garnet);width:18px;height:18px;flex:none}
+
 /* Footer */
 footer{background:var(--ink);color:rgba(255,255,255,.65);padding:72px 0 36px;font-size:.95rem}
 footer .wrap{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
@@ -409,7 +494,6 @@ footer a:hover{color:#fff}
 @media (max-width:1180px){
   .nav > a:not(.btn){padding:8px 9px;font-size:.94rem}
   .steps{grid-template-columns:repeat(2,1fr)}
-  .inc{grid-template-columns:repeat(2,1fr)}
   .weeks{grid-template-columns:repeat(2,1fr)}
   .fieldcard{grid-template-columns:1fr}
   .fieldcard .photo{min-height:180px;order:-1}
@@ -430,7 +514,9 @@ footer a:hover{color:#fff}
   .menu-btn[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg)}
   .menu-btn[aria-expanded="true"] span:nth-child(2){opacity:0}
   .menu-btn[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-  .hero .wrap,.split,.contact-grid,.panel,.stepper,.founders,.word{grid-template-columns:1fr;gap:40px}
+  .hero .wrap,.split,.contact-grid,.panel,.stepper,.founders,.word,.apply-grid{grid-template-columns:1fr;gap:40px}
+  .usp{grid-template-columns:1fr;gap:28px;max-width:620px}
+  .next-steps{margin-top:20px}
   .hero .wrap{padding-top:48px;padding-bottom:64px}
   .visual{min-height:440px}
   .plans{grid-template-columns:1fr;max-width:520px}
@@ -448,7 +534,7 @@ footer a:hover{color:#fff}
   .sec{padding:72px 0}
   .band{padding-bottom:72px}
   .wrap{padding:0 20px}
-  .row2,.weeks,.topicgrid,.inc,.steps{grid-template-columns:1fr}
+  .row2,.weeks,.topicgrid,.steps{grid-template-columns:1fr}
   .panel,.step-card,.fieldcard,.format,.formcard{padding:24px}
   .band .inner{padding:40px 28px}
   .visual{min-height:380px}

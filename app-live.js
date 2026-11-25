@@ -1088,7 +1088,17 @@
       };
       const nextOf = k => FLOW[FLOW.indexOf(k) + 1] || null;
       const leadErr = (p, err) => { const m = p.querySelector('.form-msg'); m.innerHTML = errMsg(err); m.className = 'form-msg err'; };
-      const GROUPS = { academy: 'Shifo Academy', abroad: 'Shifo Abroad', clinic: 'Shifo Clinic', media: 'Shifo Media' };
+      const GROUPS = { academy: 'Shifo Academy', abroad: 'Shifo Abroad', clinic: 'Shifo Clinic', media: 'Shifo Media', other: T('Umumiy savol', 'Общий вопрос', 'General question') };
+      // The choices people make on the website forms (submission-created.mjs keeps only these values)
+      const DET = {
+        level: [L('Darajasi', 'Уровень', 'Level'), { unsure: T('Bilmaydi', 'Не знает', 'Not sure'), a2: T('A2 yoki past', 'A2 или ниже', 'A2 or lower'), b1: 'B1', b2: 'B2', c1: 'C1' }],
+        time: [L('Sinov vaqti', 'Время урока', 'Trial time'), { morning: T('Ertalab', 'Утром', 'Morning'), afternoon: T('Kunduzi', 'Днём', 'Afternoon'), evening: T('Kechqurun', 'Вечером', 'Evening'), weekend: T('Dam olish kuni', 'В выходные', 'Weekend') }],
+        need: [L('Kerak', 'Нужно', 'Needs'), { study: T('Oʻqish yoʻllari', 'Пути учёбы', 'Study pathways'), docs: T('Reja va hujjatlar', 'План и документы', 'Planning and documents'), settle: T('Moslashish', 'Адаптация', 'Settling in'), family: T('Oila uchun', 'Для семьи', 'For the family'), other: T('Boshqa', 'Другое', 'Something else') }],
+        where: [L('Hozir', 'Сейчас в', 'Now in'), { uz: T('Oʻzbekiston', 'Узбекистан', 'Uzbekistan'), us: T('AQSh', 'США', 'USA'), other: T('Boshqa davlat', 'Другая страна', 'Another country') }]
+      };
+      const REACH = { telegram: 'Telegram', whatsapp: 'WhatsApp', call: T('Qoʻngʻiroq', 'Звонок', 'Phone call') };
+      const detailRows = ld => Object.entries(DET).filter(([k]) => ld.details && ld.details[k]).map(([k, [lbl, vals]]) => `<div><dt>${lbl}</dt><dd>${esc(vals[ld.details[k]] || ld.details[k])}</dd></div>`).join('')
+        + (ld.contact ? `<div><dt>${L('Aloqa', 'Связь', 'Reach by')}</dt><dd>${esc(REACH[ld.contact] || ld.contact)}</dd></div>` : '');
       const SUB = { 'academy-general': 'General English', 'academy-medical': 'Medical English', 'academy-intense': 'Medical English Intense', 'academy-3m': '3-Month Program', 'media-guest': T('Podkast mehmoni', 'Гость подкаста', 'Podcast guest') };
       const groupOf = v => Object.keys(GROUPS).find(g => String(v || '').startsWith(g)) || 'other';
       const interestTxt = v => v ? (GROUPS[v] || (GROUPS[groupOf(v)] ? `${GROUPS[groupOf(v)].replace('Shifo ', '')} · ${SUB[v] || v.split('-').slice(1).join(' ')}` : v)) : '—';
@@ -1165,8 +1175,9 @@
           <ol class="mini-pipe">${FLOW.map((k, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}"><button type="button" data-set="${k}" title="${STG[k].tt()}"><i></i><span>${STG[k].t()}</span></button></li>`).join('')}</ol>
           ${ld.stage === 'lost' ? `<p class="tag grey" style="margin:-4px 0 12px">${STG.lost.t()}</p>` : ''}
           <div class="lead-card">
-            <p><b>${esc(ld.phone || '—')}</b>${ld.contact ? ` <span class="muted">· ${esc(ld.contact)}</span>` : ''}${ld.attempts ? ` <span class="tag warn">${ld.attempts} ${L('urinish', 'попыт.', ld.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</p>
+            <p><b>${esc(ld.phone || '—')}</b>${ld.attempts ? ` <span class="tag warn">${ld.attempts} ${L('urinish', 'попыт.', ld.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</p>
             <div class="btn-row">${contactLinks(ld)}</div>
+            ${detailRows(ld) ? `<dl class="lead-det">${detailRows(ld)}</dl>` : ''}
             ${ld.message ? `<div class="lead-msg"><p class="lbl">${L('Xabari', 'Сообщение', 'Their message')}</p><p>${esc(ld.message)}</p></div>` : ''}
           </div>
           <form id="lead-form">
