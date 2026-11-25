@@ -51,7 +51,8 @@ async function whoIs(req) {
 }
 
 /* ---------- CRM: packages, lessons used and left ----------
-   A package is bought for a month. Teaching and speaking are counted in hours (lesson length),
+   A package is bought for a month, or for several months at once (months: 3 = one payment covers
+   3 months, the hours are given month by month). A part set to -1 has no limit (e.g. speaking club). Teaching and speaking are counted in hours (lesson length),
    mentoring in sessions. A lesson counts once it is taught, or when the student cancels late or
    does not come ("late"); a lesson cancelled 24h+ before ("cancelled") is not counted.
    Hours left at the end of a paid month carry over to the next month once, then expire. */
@@ -59,23 +60,43 @@ const PARTS = ['teach', 'speak', 'mentor'];
 const DEFAULT_PACKAGES = [
   { id: 'general', name: 'General English', price: 249.99, parts: { teach: 8, speak: 2, mentor: 1 } },
   { id: 'medical', name: 'Medical English', price: 299.99, parts: { teach: 8, speak: 2, mentor: 1 } },
-  { id: 'intense', name: 'Medical English Intense', price: 359.99, parts: { teach: 12, speak: 3, mentor: 2 } }
+  { id: 'intense', name: 'Medical English Intense', price: 359.99, parts: { teach: 12, speak: 3, mentor: 2 } },
+  { id: 'program-3m', name: '3-Month Program', price: 990.11, months: 3, parts: { teach: 12, speak: -1, mentor: 1 } }
 ];
+const UNL = -1;
+/* the student funnel: website applications and leads added by hand */
+const STAGES = ['applied', 'reached', 'confirmed', 'trial', 'paid', 'scheduled', 'lost'];
+const OLD_STAGE = { new: 'applied', attempt1: 'applied', attempt2: 'applied', attempt3: 'applied', enrolled: 'scheduled' };
+const leadOut = l => l && OLD_STAGE[l.stage] ? { ...l, stage: OLD_STAGE[l.stage], attempts: l.attempts || (+String(l.stage).replace(/\D/g, '') || 0) } : l;
+const CLOSED = ['scheduled', 'lost'];
+const SOURCES = ['website', 'instagram', 'telegram', 'phone', 'referral', 'other'];
+const addMonth = (m, i) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + (mo - 1) + i; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; };
+const lengthOf = P => Math.min(12, Math.max(1, Math.round(+(P && P.months) || 1)));
+/* the months each package payment covers: { 'YYYY-MM': { pay, P, i } } */
+function coverage(pkgs, payments) {
+  const cover = {};
+  payments.filter(p => p.pkg).slice().sort((a, b) => a.month.localeCompare(b.month)).forEach(pay => {
+    const P = pkgs.find(x => x.id === pay.pkg); const n = lengthOf(P);
+    for (let i = 0; i < n; i++) { const m = addMonth(pay.month, i); if (!cover[m]) cover[m] = { pay, P, i, n }; }
+  });
+  return cover;
+}
 const STATUSES = ['planned', 'taught', 'late', 'cancelled'];
 const monthKey = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' }).slice(0, 7);
 const r2 = n => Math.round(n * 100) / 100;
 const counted = l => l.status === 'taught' || l.status === 'late';
 const amountOf = l => (l.kind || 'teach') === 'mentor' ? 1 : (l.minutes || 60) / 60;
 function balance(pkgs, payments, schedule) {
-  const used = {}, months = new Set();
-  payments.filter(p => p.pkg).forEach(p => months.add(p.month));
+  const used = {}, cover = coverage(pkgs, payments), months = new Set(Object.keys(cover));
   schedule.filter(counted).forEach(l => { const m = monthKey(l.start); months.add(m); const u = used[m] || (used[m] = { teach: 0, speak: 0, mentor: 0 }); u[l.kind || 'teach'] += amountOf(l); });
   const carry = { teach: 0, speak: 0, mentor: 0 }, out = [];
   [...months].sort().forEach(m => {
-    const pay = payments.find(p => p.month === m && p.pkg), P = pay && pkgs.find(x => x.id === pay.pkg);
-    const row = { month: m, pkg: P ? P.id : '', name: P ? P.name : '', status: pay ? pay.status : '', parts: {} };
+    const cv = cover[m], pay = cv && cv.pay, P = cv && cv.P;
+    const row = { month: m, pkg: P ? P.id : '', name: P ? P.name : '', status: pay ? pay.status : '', parts: {}, ...(cv && cv.n > 1 ? { part: cv.i + 1, of: cv.n, from: pay.month } : {}) };
     PARTS.forEach(k => {
-      const own = P ? +P.parts[k] || 0 : 0, c = carry[k], u = r2((used[m] || {})[k] || 0);
+      const u = r2((used[m] || {})[k] || 0);
+      if (P && +P.parts[k] === UNL) { row.parts[k] = { own: UNL, unl: true, carry: 0, used: u, left: null, over: 0 }; carry[k] = 0; return; }
+      const own = P ? +P.parts[k] || 0 : 0, c = carry[k];
       const fromCarry = Math.min(c, u), fromOwn = u - fromCarry, ownLeft = Math.max(own - fromOwn, 0);
       row.parts[k] = { own, carry: r2(c), used: u, left: r2(ownLeft + c - fromCarry), over: r2(Math.max(fromOwn - own, 0)) };
       carry[k] = r2(ownLeft);
@@ -108,8 +129,27 @@ export default async (req) => {
   const write = (sid, kind, list) => store.setJSON(`s/${sid}/${kind}`, list);
   const body = async () => { try { return await req.json(); } catch (e) { return {}; } };
 
-  const getPkgs = async () => (await store.get('crm/packages', { type: 'json' })) || DEFAULT_PACKAGES;
+  /* the package list: saved by the CEO/admin; a list saved before the 3-month program existed gets it added once */
+  const getPkgs = async () => {
+    const st = await store.get('crm/packages', { type: 'json' });
+    if (!st) return DEFAULT_PACKAGES;
+    if (Array.isArray(st)) return st.some(p => p.id === 'program-3m') ? st : st.concat(DEFAULT_PACKAGES.filter(p => p.id === 'program-3m'));
+    return st.list || DEFAULT_PACKAGES;
+  };
   const getAssign = async () => (await store.get('crm/assign', { type: 'json' })) || {};
+  /* chat: one thread per student, shared by the student, their teacher and the admin team.
+     s/<sid>/chat: the messages; chat/index: the last message of every thread (for the inbox);
+     read marks: s/<sid>/chatread (the student), chat/read/<staff id> (each staff member) */
+  const roleOf = () => me.roles.includes('ceo') ? 'ceo' : me.roles.includes('admin') ? 'admin' : me.roles.includes('manager') ? 'manager' : me.teacher ? 'teacher' : 'student';
+  const chatOf = sid => read(sid, 'chat');
+  const markRead = async (sid, at) => {
+    if (!me.teacher) return store.setJSON(`s/${sid}/chatread`, { at });
+    const k = `chat/read/${me.id}`, mine = (await store.get(k, { type: 'json' })) || {};
+    if ((mine[sid] || '') >= at) return; mine[sid] = at; return store.setJSON(k, mine);
+  };
+  /* each teacher's own class room (Zoom, Meet...): a lesson without its own link uses its teacher's room */
+  const getRooms = async () => (await store.get('crm/rooms', { type: 'json' })) || {};
+  const withRoom = (l, sid, assign, rooms) => l.link ? l : { ...l, room: rooms[((l.teacher || assign[sid] || {}).id) || ''] || '' };
   /* a teacher (not admin, CEO or account manager) reaches only students assigned to them, or not yet assigned */
   const allowed = (sid, assign) => !me.limited || !assign[sid] || assign[sid].id === me.id;
 
@@ -121,9 +161,9 @@ export default async (req) => {
   };
   const view = async sid => {
     const [schedule, homework, payments] = await Promise.all([read(sid, 'schedule'), read(sid, 'homework'), read(sid, 'payments')]);
-    const [pkgs, assign] = await Promise.all([getPkgs(), getAssign()]);
-    const out = { schedule, homework, checks: (await store.get(`s/${sid}/checks`, { type: 'json' })) || {},
-      balance: balance(pkgs, payments, schedule), packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, ...(me.money || !me.teacher ? { price: p.price } : {}) })),
+    const [pkgs, assign, rooms, timetable] = await Promise.all([getPkgs(), getAssign(), getRooms(), store.get(`s/${sid}/timetable`, { type: 'json' })]);
+    const out = { schedule: schedule.map(l => withRoom(l, sid, assign, rooms)), homework, checks: (await store.get(`s/${sid}/checks`, { type: 'json' })) || {}, timetable: timetable || null,
+      balance: balance(pkgs, payments, schedule), packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, months: lengthOf(p), ...(me.money || !me.teacher ? { price: p.price } : {}) })),
       teacher: assign[sid] || null };
     if (!me.teacher || me.money) out.payments = payments;   // students see their own; among staff: CEO, admin, account managers
     return out;
@@ -133,6 +173,23 @@ export default async (req) => {
     /* ---------- reading ---------- */
     if (req.method === 'GET') {
       if (action === 'me') return json(200, { ...(await view(me.id)), roles: me.roles });
+      if (action === 'chat') {                        // one thread; opening it marks it read
+        const sid = me.teacher ? q.student : me.id;
+        if (!sid || !ID.test(sid)) return fail(400, 'student');
+        if (me.teacher && !allowed(sid, await getAssign())) return fail(403, 'not_your_student');
+        const messages = await chatOf(sid), lastAt = messages.length ? messages[messages.length - 1].at : '';
+        if (lastAt) await markRead(sid, lastAt);
+        return json(200, { messages });
+      }
+      if (action === 'chat-unread') {                 // for the badge: messages not read yet
+        if (!me.teacher) {
+          const [messages, mark] = await Promise.all([chatOf(me.id), store.get(`s/${me.id}/chatread`, { type: 'json' })]);
+          return json(200, { unread: messages.filter(m => m.from.role !== 'student' && m.at > ((mark && mark.at) || '')).length });
+        }
+        const [index, mine, assign] = await Promise.all([store.get('chat/index', { type: 'json' }), store.get(`chat/read/${me.id}`, { type: 'json' }), getAssign()]);
+        const threads = Object.entries(index || {}).filter(([sid]) => allowed(sid, assign)).map(([sid, t]) => ({ student: sid, ...t, unread: t.from === 'student' && t.at > ((mine || {})[sid] || '') }));
+        return json(200, { unread: threads.filter(t => t.unread).length, threads });
+      }
 
       if (action === 'student') {
         if (!me.teacher) return fail(403, 'forbidden');
@@ -163,7 +220,7 @@ export default async (req) => {
 
       if (action === 'board') {                       // teacher overview: hand-ins to review, upcoming lessons, lessons to mark
         if (!me.teacher) return fail(403, 'forbidden');
-        const [{ blobs }, assign] = await Promise.all([store.list({ prefix: 's/' }), getAssign()]);
+        const [{ blobs }, assign, rooms] = await Promise.all([store.list({ prefix: 's/' }), getAssign(), getRooms()]);
         const review = [], lessons = [], toMark = [], now = Date.now();
         await Promise.all(blobs.map(async b => {
           const [, sid, kind] = b.key.split('/');
@@ -171,16 +228,22 @@ export default async (req) => {
           if (kind === 'homework') (await read(sid, 'homework')).forEach(h => { if (h.submission) review.push({ student: sid, ...h }); });
           if (kind === 'schedule') (await read(sid, 'schedule')).forEach(l => {
             const end = Date.parse(l.start) + (l.minutes || 60) * 60000;
-            if (end > now) lessons.push({ student: sid, ...l });
+            if (end > now) lessons.push({ student: sid, ...withRoom(l, sid, assign, rooms) });
             else if (!l.status || l.status === 'planned') { if (!me.limited || !l.teacher || l.teacher.id === me.id) toMark.push({ student: sid, ...l }); }
           });
         }));
         lessons.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
         toMark.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
         review.sort((a, b) => Date.parse(b.submission.at) - Date.parse(a.submission.at));
-        return json(200, { review, lessons: lessons.slice(0, 50), toMark: toMark.slice(0, 50) });
+        return json(200, { review, lessons: lessons.slice(0, 50), toMark: toMark.slice(0, 50), room: rooms[me.id] || '' });
       }
 
+      if (action === 'leads') {                       // the funnel: CEO, admin, account managers
+        if (!me.money) return fail(403, 'manager');
+        const { blobs } = await store.list({ prefix: 'leads/' });
+        const leads = (await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' })))).filter(Boolean).map(leadOut).sort((a, b) => b.at.localeCompare(a.at));
+        return json(200, { leads, stages: STAGES });
+      }
       if (action === 'crm') {                         // one row per student, teachers' hours, money (by role)
         if (!me.teacher) return fail(403, 'forbidden');
         const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(q.month || '') ? q.month : monthKey(Date.now());
@@ -191,12 +254,13 @@ export default async (req) => {
         await Promise.all(sids.map(async sid => {
           const [schedule, payments] = await Promise.all([read(sid, 'schedule'), read(sid, 'payments')]);
           const bal = balance(pkgs, payments, schedule), cur = bal.find(x => x.month === month) || null;
-          const pay = payments.find(p => p.month === month);
+          const own = payments.find(p => p.month === month), cv = coverage(pkgs, payments)[month];
+          const pay = own || (cv ? cv.pay : null), prepaid = !own && !!cv;     // month 2 or 3 of a package paid earlier
           const past = schedule.filter(l => Date.parse(l.start) < now), next = schedule.find(l => Date.parse(l.start) >= now);
           rows[sid] = { teacher: assign[sid] || null, month: cur, next: next ? next.start : null, last: past.length ? past[past.length - 1].start : null,
             toMark: past.filter(l => !l.status || l.status === 'planned').length,
-            ...(me.money ? { pay: pay ? { status: pay.status, amount: pay.amount, pkg: pay.pkg || '' } : null } : {}) };
-          if (me.money && pay) { totals[pay.status] = r2((totals[pay.status] || 0) + (+pay.amount || 0)); totals.count++; }
+            ...(me.money ? { pay: pay ? { status: pay.status, amount: pay.amount, pkg: pay.pkg || '', ...(prepaid ? { prepaid: true, from: pay.month } : {}) } : null } : {}) };
+          if (me.money && pay && !prepaid) { totals[pay.status] = r2((totals[pay.status] || 0) + (+pay.amount || 0)); totals.count++; }
           schedule.filter(l => counted(l) && monthKey(l.start) === month).forEach(l => {
             const t = l.teacher || assign[sid] || { id: '-', name: '' };
             if (me.limited && t.id !== me.id) return;
@@ -206,7 +270,7 @@ export default async (req) => {
             if (!T.students.includes(sid)) T.students.push(sid);
           });
         }));
-        return json(200, { month, rows, packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, ...(me.money ? { price: p.price } : {}) })),
+        return json(200, { month, rows, packages: pkgs.map(p => ({ id: p.id, name: p.name, parts: p.parts, months: lengthOf(p), ...(me.money ? { price: p.price } : {}) })),
           teachers: me.boss || me.limited ? Object.values(teachers) : [], hidden, ...(me.money ? { totals } : {}) });
       }
 
@@ -299,6 +363,22 @@ export default async (req) => {
       return json(200, { homework: list });
     }
 
+    if (action === 'chat-send') {                     // students and staff
+      const sid = me.teacher ? b.student : me.id;
+      if (!sid || !ID.test(sid)) return fail(400, 'student');
+      if (me.teacher && !allowed(sid, await getAssign())) return fail(403, 'not_your_student');
+      const text = str(b.text, 2000);
+      if (!text) return fail(400, 'empty');
+      const prev = await chatOf(sid), lastT = prev.length ? Date.parse(prev[prev.length - 1].at) : 0;
+      const at = new Date(Math.max(Date.now(), lastT + 1)).toISOString(), role = roleOf();   // always after the previous message
+      const msg = { id: uid(), at, from: { id: me.id, name: me.name || me.email.split('@')[0], role }, text };
+      const list = prev.concat(msg).slice(-500);
+      const index = (await store.get('chat/index', { type: 'json' })) || {};
+      index[sid] = { at, text: text.slice(0, 120), from: role === 'student' ? 'student' : 'staff', by: msg.from.name };
+      await Promise.all([write(sid, 'chat', list), store.setJSON('chat/index', index), markRead(sid, at)]);
+      return json(200, { messages: list });
+    }
+
     /* everything below is staff only */
     if (!me.teacher) return fail(403, 'forbidden');
 
@@ -306,17 +386,63 @@ export default async (req) => {
       if (!me.boss) return fail(403, 'admin');
       const list = (Array.isArray(b.packages) ? b.packages : []).slice(0, 12).map(p => ({
         id: /^[a-z0-9-]{2,30}$/.test(p.id || '') ? p.id : uid().slice(0, 8), name: str(p.name, 80),
-        price: Math.max(0, Math.round((+p.price || 0) * 100) / 100),
-        parts: Object.fromEntries(PARTS.map(k => [k, Math.max(0, Math.min(200, Math.round((+((p.parts || {})[k]) || 0) * 4) / 4))]))
+        price: Math.max(0, Math.round((+p.price || 0) * 100) / 100), months: lengthOf(p),
+        parts: Object.fromEntries(PARTS.map(k => { const v = +((p.parts || {})[k]); return [k, v === UNL ? UNL : Math.max(0, Math.min(200, Math.round((v || 0) * 4) / 4))]; }))
       })).filter(p => p.name);
       if (!list.length) return fail(400, 'packages');
-      await store.setJSON('crm/packages', list);
+      await store.setJSON('crm/packages', { v: 2, list });
       return json(200, { packages: list });
+    }
+
+    if (action === 'lead-save' || action === 'lead-update' || action === 'lead-delete') {
+      if (!me.money) return fail(403, 'manager');
+      const by = me.name || me.email, now = new Date().toISOString();
+      if (action === 'lead-save') {                   // a lead added by hand (call, Instagram, a friend...)
+        const L0 = b.lead || {};
+        const lead = { id: uid(), at: now, source: SOURCES.includes(L0.source) ? L0.source : 'other', name: str(L0.name, 120), phone: str(L0.phone, 60),
+          contact: str(L0.contact, 40), interest: str(L0.interest, 60), message: str(L0.message, 2000), stage: 'applied', attempts: 0, updated: now, follow: '',
+          history: [{ at: now, by, to: 'applied', note: str(L0.note, 1000) }] };
+        if (!lead.name && !lead.phone) return fail(400, 'lead');
+        await store.setJSON(`leads/${lead.id}`, lead);
+        return json(200, { lead });
+      }
+      if (!ID.test(b.id || '') && !/^[a-z0-9]{6,40}$/i.test(b.id || '')) return fail(400, 'lead');
+      const key = `leads/${b.id}`, lead = leadOut(await store.get(key, { type: 'json' }));
+      if (!lead) return fail(404, 'lead');
+      if (action === 'lead-delete') {                 // spam or a duplicate: CEO and admin only
+        if (!me.boss) return fail(403, 'admin');
+        await store.delete(key);
+        return json(200, { ok: true });
+      }
+      // lead-update: a new stage, a note, a follow-up date, a reach attempt with no answer, corrected details
+      const to = STAGES.includes(b.stage) ? b.stage : lead.stage;
+      let note = str(b.note, 1000), follow = b.follow === '' ? '' : /^\d{4}-\d{2}-\d{2}$/.test(b.follow || '') ? b.follow : lead.follow || '';
+      if (b.attempt) {                                // tried to reach them, no answer: count it, follow up tomorrow
+        lead.attempts = (lead.attempts || 0) + 1;
+        note = (`No answer (attempt ${lead.attempts})` + (note ? '. ' + note : '')).slice(0, 1000);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(b.follow || '')) follow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+      }
+      const fix = b.fields || {};
+      ['name', 'phone', 'contact', 'interest'].forEach(k => { if (typeof fix[k] === 'string') lead[k] = str(fix[k], k === 'name' ? 120 : 60); });
+      if (to !== lead.stage || note) lead.history = (lead.history || []).concat({ at: now, by, ...(to !== lead.stage ? { from: lead.stage, to } : {}), note }).slice(-100);
+      lead.stage = to; lead.follow = CLOSED.includes(to) ? '' : follow; lead.updated = now; lead.attempts = lead.attempts || 0;
+      await store.setJSON(key, lead);
+      return json(200, { lead });
+    }
+
+    if (action === 'room-save') {                     // a teacher's own class room link, used by their lessons without a link
+      const link = str(b.link, 500);
+      if (link && !/^https:\/\/\S+$/i.test(link)) return fail(400, 'link');
+      const rooms = await getRooms();
+      if (link) rooms[me.id] = link; else delete rooms[me.id];
+      await store.setJSON('crm/rooms', rooms);
+      return json(200, { room: rooms[me.id] || '' });
     }
 
     const sid = target(b.student); if (!sid) return fail(400, 'student');
     const ASSIGN = await getAssign();
     if (!allowed(sid, ASSIGN)) return fail(403, 'not_your_student');
+    const shown = async list => { const rooms = await getRooms(); return list.map(l => withRoom(l, sid, ASSIGN, rooms)); };
 
     if (action === 'assign') {                        // CEO, admin, account managers choose the student's teacher
       if (!me.manage) return fail(403, 'manager');
@@ -334,7 +460,7 @@ export default async (req) => {
       l.status = b.status; l.marked = { by: me.name || me.email, at: new Date().toISOString() };
       if (!l.teacher) l.teacher = ASSIGN[sid] || (me.limited ? { id: me.id, name: me.name || me.email } : null);
       await write(sid, 'schedule', list);
-      return json(200, { schedule: list });
+      return json(200, { schedule: await shown(list) });
     }
 
     if (action === 'lesson-save') {
@@ -351,17 +477,41 @@ export default async (req) => {
       const item = { id: old ? old.id : uid(), start: start.toISOString(),
         minutes: Math.min(240, Math.max(15, +l.minutes || 60)), title: str(l.title, 140), link, note: str(l.note, 500),
         kind: PARTS.includes(l.kind) ? l.kind : (old && old.kind) || 'teach', status: STATUSES.includes(l.status) ? l.status : (old && old.status) || 'planned',
-        teacher, ...(old && old.marked ? { marked: old.marked } : {}) };
+        teacher, ...(old && old.marked ? { marked: old.marked } : {}),
+        ...(old && (old.tt || old.ttFrom) ? { ttFrom: old.ttFrom || old.start } : {}) };   // changed by hand: the timetable leaves it, and its slot, alone
       const next = list.filter(x => x.id !== item.id).concat(item).sort((x, y) => Date.parse(x.start) - Date.parse(y.start));
       await write(sid, 'schedule', next);
-      return json(200, { schedule: next });
+      return json(200, { schedule: await shown(next) });
     }
     if (action === 'lesson-delete') {
       const list = await read(sid, 'schedule'), gone = list.find(x => x.id === b.id);
       if (me.limited && gone && gone.teacher && gone.teacher.id !== me.id) return fail(403, 'not_your_lesson');
       const next = list.filter(x => x.id !== b.id);
       await write(sid, 'schedule', next);
-      return json(200, { schedule: next });
+      return json(200, { schedule: await shown(next) });
+    }
+
+    /* weekly timetable: the browser turns the pattern into one month of lessons (in the chosen time zone);
+       future lessons made by the timetable and not yet marked or changed by hand are replaced */
+    if (action === 'timetable-apply') {
+      const T0 = b.timetable || {};
+      const slots = (Array.isArray(T0.slots) ? T0.slots : []).slice(0, 14).map(x => ({ day: Math.min(7, Math.max(1, Math.round(+x.day) || 1)),
+        time: /^([01]\d|2[0-3]):[0-5]\d$/.test(x.time || '') ? x.time : '18:00', minutes: Math.min(240, Math.max(15, Math.round(+x.minutes) || 60)), kind: PARTS.includes(x.kind) ? x.kind : 'teach' }));
+      const from = Date.parse(b.from), to = Date.parse(b.to), now = Date.now();
+      if (isNaN(from) || isNaN(to) || to <= from || to - from > 32 * 864e5) return fail(400, 'month');
+      const tIn = b.teacher && ID.test(b.teacher.id || '') ? { id: b.teacher.id, name: str(b.teacher.name, 100) } : null;
+      const teacher = me.limited ? { id: me.id, name: me.name || me.email } : tIn || ASSIGN[sid] || null;
+      const made = (Array.isArray(b.lessons) ? b.lessons : []).slice(0, 62).map(x => ({ start: new Date(x.start), minutes: Math.min(240, Math.max(15, Math.round(+x.minutes) || 60)), kind: PARTS.includes(x.kind) ? x.kind : 'teach' }))
+        .filter(x => !isNaN(x.start) && +x.start >= Math.max(now, from) && +x.start < to)
+        .map(x => ({ id: uid(), start: x.start.toISOString(), minutes: x.minutes, title: '', link: '', note: '', kind: x.kind, status: 'planned', teacher, tt: true }));
+      const list = await read(sid, 'schedule');
+      const keep = list.filter(l => !(l.tt && (!l.status || l.status === 'planned') && Date.parse(l.start) >= Math.max(now, from) && Date.parse(l.start) < to));
+      const taken = new Set(keep.flatMap(l => [Date.parse(l.start), l.ttFrom ? Date.parse(l.ttFrom) : NaN]));
+      const fresh = made.filter(x => !taken.has(Date.parse(x.start)));
+      const next = keep.concat(fresh).sort((x, y) => Date.parse(x.start) - Date.parse(y.start));
+      const timetable = { slots, tz: str(T0.tz, 60) || 'Asia/Tashkent', teacher, updated: new Date().toISOString(), by: me.name || me.email };
+      await Promise.all([write(sid, 'schedule', next), store.setJSON(`s/${sid}/timetable`, timetable)]);
+      return json(200, { schedule: await shown(next), timetable, made: fresh.length, removed: list.length - keep.length });
     }
 
     if (action === 'hw-save') {
@@ -407,7 +557,11 @@ export default async (req) => {
       if (!['paid', 'partial', 'due', 'overdue'].includes(p.status)) return fail(400, 'status');
       const pkgs = await getPkgs();
       const pkg = pkgs.some(x => x.id === p.pkg) ? p.pkg : '';
-      if (pkg && list.some(x => x.month === p.month && x.pkg && x.id !== p.id)) return fail(409, 'month_taken');
+      if (pkg) {                                       // one package per month: a 3-month package takes 3 months
+        const mine = new Set(Array.from({ length: lengthOf(pkgs.find(x => x.id === pkg)) }, (_, i) => addMonth(p.month, i)));
+        const other = coverage(pkgs, list.filter(x => x.id !== p.id));
+        if (Object.keys(other).some(m => mine.has(m))) return fail(409, 'month_taken');
+      }
       const item = { id: p.id && list.some(x => x.id === p.id) ? p.id : uid(), month: p.month, pkg,
         amount: Math.max(0, Math.round((+p.amount || 0) * 100) / 100), status: p.status, note: str(p.note, 300) };
       const next = list.filter(x => x.id !== item.id).concat(item).sort((x, y) => y.month.localeCompare(x.month));
