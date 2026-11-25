@@ -7,6 +7,7 @@ import { getStore } from '@netlify/blobs';
 
 const str = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
 const one = (v, list) => list.includes(v) ? v : '';
+const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 const FORMS = ['academy', 'abroad', 'contact'];
 const PLANS = ['general', 'medical', 'intense', '3m'];
 const TOPIC = { media: 'media', guest: 'media-guest', other: 'other' };
@@ -36,15 +37,19 @@ export default async (req) => {
   const id = /^[a-z0-9]{6,40}$/i.test(p.id || '') ? p.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const at = p.created_at && !isNaN(Date.parse(p.created_at)) ? new Date(p.created_at).toISOString() : new Date().toISOString();
   const { interest, details } = read(form, d);
+  const first = str(d.first, 60), last = str(d.last, 60);
   Object.keys(details).forEach(k => { if (!details[k]) delete details[k]; });
   const lead = {
     id, at, source: 'website', form,
-    name: str(d.name, 120), phone: str(d.phone, 60), contact: one(d.contact, ['telegram', 'whatsapp', 'call']),
+    first, last, name: str([first, last].filter(Boolean).join(' ') || d.name, 120),
+    email: EMAIL.test(str(d.email, 120)) ? str(d.email, 120).toLowerCase() : '', phone: str(d.phone, 60),
+    telegram: str(d.telegram, 40).replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 32),
+    contact: one(d.contact, ['telegram', 'whatsapp', 'call', 'email']),
     interest, details, message: str(d.message, 2000),
     stage: 'applied', attempts: 0, updated: at, follow: '',
     history: [{ at, by: 'Website', to: 'applied', note: '' }]
   };
-  if (!lead.name && !lead.phone) return new Response('skipped');
+  if (!lead.name && !lead.phone && !lead.email) return new Response('skipped');
   // Netlify may retry an event: write only once per submission
   await getStore({ name: 'academy', consistency: 'strong' }).setJSON(`leads/${id}`, lead, { onlyIfNew: true });
   return new Response('ok');

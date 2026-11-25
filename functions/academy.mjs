@@ -400,9 +400,10 @@ export default async (req) => {
       if (action === 'lead-save') {                   // a lead added by hand (call, Instagram, a friend...)
         const L0 = b.lead || {};
         const lead = { id: uid(), at: now, source: SOURCES.includes(L0.source) ? L0.source : 'other', name: str(L0.name, 120), phone: str(L0.phone, 60),
+          email: /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(str(L0.email, 120)) ? str(L0.email, 120).toLowerCase() : '',
           contact: str(L0.contact, 40), interest: str(L0.interest, 60), message: str(L0.message, 2000), stage: 'applied', attempts: 0, updated: now, follow: '',
           history: [{ at: now, by, to: 'applied', note: str(L0.note, 1000) }] };
-        if (!lead.name && !lead.phone) return fail(400, 'lead');
+        if (!lead.name && !lead.phone && !lead.email) return fail(400, 'lead');
         await store.setJSON(`leads/${lead.id}`, lead);
         return json(200, { lead });
       }
@@ -423,7 +424,7 @@ export default async (req) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(b.follow || '')) follow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
       }
       const fix = b.fields || {};
-      ['name', 'phone', 'contact', 'interest'].forEach(k => { if (typeof fix[k] === 'string') lead[k] = str(fix[k], k === 'name' ? 120 : 60); });
+      ['name', 'phone', 'contact', 'interest', 'email', 'telegram'].forEach(k => { if (typeof fix[k] === 'string') lead[k] = str(fix[k], k === 'name' || k === 'email' ? 120 : 60); });
       if (to !== lead.stage || note) lead.history = (lead.history || []).concat({ at: now, by, ...(to !== lead.stage ? { from: lead.stage, to } : {}), note }).slice(-100);
       lead.stage = to; lead.follow = CLOSED.includes(to) ? '' : follow; lead.updated = now; lead.attempts = lead.attempts || 0;
       await store.setJSON(key, lead);
