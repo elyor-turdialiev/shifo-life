@@ -250,7 +250,12 @@ html[lang="en"] [data-l]:not([data-l="en"]){display:none !important}
 .sec.alt .faq details{border-color:transparent}
 
 /* Plans */
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-items:stretch}
+.plans .plan{padding:32px 24px 26px}
+.plans .price b{font-size:2rem}
+.plans .price{flex-wrap:wrap;column-gap:6px;row-gap:0}
+.plans .plan dt{white-space:nowrap}
+@media (max-width:1180px) and (min-width:1001px){.plans{grid-template-columns:repeat(2,1fr)}}
 .plan{position:relative;background:#fff;border-radius:var(--r-lg);padding:34px 30px 30px;display:flex;flex-direction:column;border:1px solid var(--line)}
 .plan h3{font-size:1.35rem}
 .plan .for{color:var(--muted);margin-top:8px;font-size:.98rem;min-height:3.2em}
@@ -361,7 +366,11 @@ form{display:grid;gap:18px}
 label{display:grid;gap:7px;font-weight:600;font-size:.93rem;color:var(--ink)}
 input,select,textarea{font:inherit;font-size:1rem;color:var(--ink);background:#FBF8F8;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;width:100%;transition:border-color .2s,background .2s}
 input:hover,select:hover,textarea:hover{border-color:#E4CFD2}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--garnet);background:#fff;box-shadow:0 0 0 4px rgba(134,24,47,.1)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--garnet);background-color:#fff;box-shadow:0 0 0 4px rgba(134,24,47,.1)}
+select{-webkit-appearance:none;appearance:none;cursor:pointer;padding-right:42px;text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%2386182F' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;background-size:16px 16px}
+select::-ms-expand{display:none}
 textarea{min-height:120px;resize:vertical}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 form .btn{justify-self:start}
