@@ -1096,7 +1096,7 @@
         need: [L('Kerak', 'Нужно', 'Needs'), { study: T('Oʻqish yoʻllari', 'Пути учёбы', 'Study pathways'), docs: T('Reja va hujjatlar', 'План и документы', 'Planning and documents'), settle: T('Moslashish', 'Адаптация', 'Settling in'), family: T('Oila uchun', 'Для семьи', 'For the family'), other: T('Boshqa', 'Другое', 'Something else') }],
         where: [L('Hozir', 'Сейчас в', 'Now in'), { uz: T('Oʻzbekiston', 'Узбекистан', 'Uzbekistan'), us: T('AQSh', 'США', 'USA'), other: T('Boshqa davlat', 'Другая страна', 'Another country') }]
       };
-      const REACH = { telegram: 'Telegram', whatsapp: 'WhatsApp', call: T('Qoʻngʻiroq', 'Звонок', 'Phone call') };
+      const REACH = { telegram: 'Telegram', whatsapp: 'WhatsApp', call: T('Qoʻngʻiroq', 'Звонок', 'Phone call'), email: 'Email' };
       const detailRows = ld => Object.entries(DET).filter(([k]) => ld.details && ld.details[k]).map(([k, [lbl, vals]]) => `<div><dt>${lbl}</dt><dd>${esc(vals[ld.details[k]] || ld.details[k])}</dd></div>`).join('')
         + (ld.contact ? `<div><dt>${L('Aloqa', 'Связь', 'Reach by')}</dt><dd>${esc(REACH[ld.contact] || ld.contact)}</dd></div>` : '');
       const SUB = { 'academy-general': 'General English', 'academy-medical': 'Medical English', 'academy-intense': 'Medical English Intense', 'academy-3m': '3-Month Program', 'media-guest': T('Podkast mehmoni', 'Гость подкаста', 'Podcast guest') };
@@ -1105,16 +1105,19 @@
       const SRC = { website: L('Sayt', 'Сайт', 'Website'), instagram: 'Instagram', telegram: 'Telegram', phone: L('Qoʻngʻiroq', 'Звонок', 'Phone call'), referral: L('Tavsiya', 'Рекомендация', 'Referral'), other: L('Boshqa', 'Другое', 'Other') };
       const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       const contactLinks = ld => {
-        const raw = String(ld.phone || '').trim(), tg = raw.startsWith('@') ? raw.slice(1) : '', digits = raw.replace(/[^\d]/g, '');
+        const raw = String(ld.phone || '').trim(), user = ld.telegram || (raw.startsWith('@') ? raw.slice(1) : ''), digits = raw.startsWith('@') ? '' : raw.replace(/[^\d]/g, '');
+        const b = (k, html) => [k, html];
         const out = [];
-        if (tg) out.push(`<a class="btn btn-s btn-sm" href="https://t.me/${encodeURIComponent(tg)}" target="_blank" rel="noopener">${I('send')}Telegram</a>`);
-        else if (digits.length >= 7) {
-          out.push(`<a class="btn btn-s btn-sm" href="tel:+${digits}">${I('phone')}${L('Qoʻngʻiroq', 'Позвонить', 'Call')}</a>`);
-          out.push(`<a class="btn btn-s btn-sm" href="https://wa.me/${digits}" target="_blank" rel="noopener">${I('chat')}WhatsApp</a>`);
-          out.push(`<a class="btn btn-s btn-sm" href="https://t.me/+${digits}" target="_blank" rel="noopener">${I('send')}Telegram</a>`);
-        }
-        return out.join('');
+        if (digits.length >= 7) out.push(b('call', `href="tel:+${digits}">${I('phone')}${L('Qoʻngʻiroq', 'Позвонить', 'Call')}`), b('whatsapp', `href="https://wa.me/${digits}" target="_blank" rel="noopener">${I('chat')}WhatsApp`));
+        if (user) out.push(b('telegram', `href="https://t.me/${encodeURIComponent(user)}" target="_blank" rel="noopener">${I('send')}Telegram`));
+        else if (digits.length >= 7) out.push(b('telegram', `href="https://t.me/+${digits}" target="_blank" rel="noopener">${I('send')}Telegram`));
+        if (ld.email) out.push(b('email', `href="mailto:${encodeURIComponent(ld.email).replace('%40', '@')}">${I('mail')}Email`));
+        out.sort((x, y) => (y[0] === ld.contact) - (x[0] === ld.contact));
+        return out.map(([k, h]) => `<a class="btn ${k === ld.contact ? 'btn-p' : 'btn-s'} btn-sm" ${h}</a>`).join('');
       };
+      const digitsOf = v => String(v || '').replace(/\D/g, '');
+      // Same email or phone as another lead: probably the same person applying twice
+      const dupOf = (x, list) => list.some(y => y.id !== x.id && ((x.email && y.email === x.email) || (digitsOf(x.phone).length >= 8 && digitsOf(y.phone) === digitsOf(x.phone))));
       const noteTxt = t => { const m = /^No answer \(attempt (\d+)\)(\. )?/.exec(t || ''); return m ? L(`Javob yoʻq (${m[1]}-urinish)`, `Нет ответа (попытка ${m[1]})`, `No answer (attempt ${m[1]})`) + (m[2] ? '. ' : '') + esc(t.slice(m[0].length)) : esc(t || ''); };
       let leadsCache = null, leadStage = 'applied', leadGroup = 'all', leadFind = '';
       const getLeads = async () => leadsCache || (leadsCache = (await api('leads')).leads);
@@ -1129,7 +1132,7 @@
         let list; try { list = await getLeads(); } catch (e) { v.innerHTML = failed(e); return; }
         leadCount();
         const today = todayKey(), fq = leadFind.toLowerCase();
-        const pool = list.filter(x => (leadGroup === 'all' || groupOf(x.interest) === leadGroup) && (!fq || `${x.name} ${x.phone} ${x.message}`.toLowerCase().includes(fq)));
+        const pool = list.filter(x => (leadGroup === 'all' || groupOf(x.interest) === leadGroup) && (!fq || `${x.name} ${x.phone} ${x.email || ''} ${x.telegram || ''} ${x.message}`.toLowerCase().includes(fq)));
         const at = k => pool.filter(x => x.stage === k);
         const cards = at(leadStage).sort((a, b) => (a.follow || '9') .localeCompare(b.follow || '9') || b.at.localeCompare(a.at));
         const done = list.filter(x => x.stage === 'scheduled' || x.stage === 'lost'), rate = done.length ? Math.round(done.filter(x => x.stage === 'scheduled').length / done.length * 100) : null;
@@ -1137,15 +1140,15 @@
         const lastNote = x => { const h = (x.history || []).slice().reverse().find(e => e.note); return h ? noteTxt(h.note) : x.message ? esc(x.message) : ''; };
         const card = x => { const nx = nextOf(x.stage);
           return `<article class="lead-c" data-lead="${esc(x.id)}" tabindex="0">
-            <div class="lc-top"><b>${esc(x.name || '—')}</b>${x.attempts ? `<span class="tag warn">${x.attempts} ${L('urinish', 'попыт.', x.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</div>
+            <div class="lc-top"><b>${esc(x.name || '—')}</b>${dupOf(x, list) ? `<span class="tag grey" title="${T('Shu email yoki telefon bilan boshqa ariza bor', 'Есть другая заявка с этим email или телефоном', 'Another lead has this email or phone')}">${L('Takror?', 'Дубль?', 'Duplicate?')}</span>` : ''}${x.attempts ? `<span class="tag warn">${x.attempts} ${L('urinish', 'попыт.', x.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</div>
             <p class="lc-sub">${esc(interestTxt(x.interest))} · ${dayFmt(new Date(x.at))}</p>
-            <p class="lc-phone">${esc(x.phone || '—')}${x.contact ? ` <span class="muted">· ${esc(x.contact)}</span>` : ''}</p>
+            <p class="lc-phone">${esc(x.phone || x.email || '—')}${x.contact ? ` <span class="muted">· ${esc(REACH[x.contact] || x.contact)}</span>` : ''}</p>
             ${lastNote(x) ? `<p class="lc-note"><span>${lastNote(x)}</span></p>` : ''}
             ${x.follow ? `<p class="lc-follow${x.follow < today ? ' late' : x.follow === today ? ' today' : ''}">${I('clock')}<span>${L('Qayta aloqa', 'Связаться', 'Follow up')}: ${dayFmt(new Date(x.follow + 'T12:00:00'))}</span></p>` : ''}
             <div class="lc-act">${nx ? `<button type="button" class="btn btn-p btn-sm" data-next="${esc(x.id)}">${STG[nx].t()} ${I('arrow')}</button>` : ''}${['applied', 'reached'].includes(x.stage) ? `<button type="button" class="btn btn-s btn-sm" data-noanswer="${esc(x.id)}">${L('Javob yoʻq', 'Нет ответа', 'No answer')}</button>` : ''}</div>
           </article>`; };
         v.innerHTML = `<div class="lead-tools">
-            <input id="lead-find" type="search" placeholder="${T('Ism yoki telefon', 'Имя или телефон', 'Name or phone')}" value="${esc(leadFind)}" aria-label="Search">
+            <input id="lead-find" type="search" placeholder="${T('Ism, telefon yoki email', 'Имя, телефон или email', 'Name, phone or email')}" value="${esc(leadFind)}" aria-label="Search">
             <select id="lead-group" aria-label="Interest">${[['all', T('Barcha yoʻnalishlar', 'Все направления', 'All interests')]].concat(Object.entries(GROUPS)).map(([k, t]) => `<option value="${k}"${leadGroup === k ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
             <button type="button" class="btn btn-p btn-sm" data-lead-add>${I('plus')}${L('Ariza qoʻshish', 'Добавить заявку', 'Add a lead')}</button>
           </div>
@@ -1153,7 +1156,7 @@
           <div class="pipe-foot"><span>${due ? `<span class="tag bad">${I('clock')}${L(`Bugun ${due} ta qayta aloqa`, `Связаться сегодня: ${due}`, `${due} to follow up today`)}</span>` : ''}${rate != null ? `<span class="muted">${L('Konversiya', 'Конверсия', 'Conversion')}: <b>${rate}%</b></span>` : ''}</span>
             <button type="button" class="link${leadStage === 'lost' ? ' on' : ''}" data-stage="lost">${STG.lost.t()} (${at('lost').length})</button></div>
           <h3 class="lead-h">${STG[leadStage].t()}${leadStage !== 'lost' && leadStage !== 'scheduled' ? ` <span class="muted">· ${STG[leadStage].hint()}</span>` : ''}</h3>
-          ${cards.length ? `<div class="lead-grid">${cards.map(card).join('')}</div>` : `<div class="card muted">${list.length ? L('Bu bosqichda hech kim yoʻq.', 'На этом этапе никого нет.', 'Nobody at this step.') : L('Hali ariza yoʻq. Saytdagi “Bogʻlanish” formasidan kelgan arizalar shu yerda paydo boʻladi.', 'Заявок пока нет. Заявки с формы «Связаться» на сайте появятся здесь.', 'No applications yet. Applications from the website’s Contact form appear here.')}</div>`}`;
+          ${cards.length ? `<div class="lead-grid">${cards.map(card).join('')}</div>` : `<div class="card muted">${list.length ? L('Bu bosqichda hech kim yoʻq.', 'На этом этапе никого нет.', 'Nobody at this step.') : L('Hali ariza yoʻq. Saytdagi Academy, Abroad va Bogʻlanish formalaridan kelgan arizalar shu yerda paydo boʻladi.', 'Заявок пока нет. Заявки с форм Academy, Abroad и «Контакты» на сайте появятся здесь.', 'No applications yet. Applications from the website’s Academy, Abroad and Contact forms appear here.')}</div>`}`;
         v.querySelector('#lead-group').addEventListener('change', e => { leadGroup = e.target.value; RENDER.leads(v); });
         let ft; v.querySelector('#lead-find').addEventListener('input', e => { clearTimeout(ft); ft = setTimeout(() => { leadFind = e.target.value; RENDER.leads(v).then(() => { const f = v.querySelector('#lead-find'); f.focus(); f.setSelectionRange(f.value.length, f.value.length); }); }, 250); });
         v.querySelectorAll('[data-stage]').forEach(b => b.addEventListener('click', () => { leadStage = b.dataset.stage; RENDER.leads(v); }));
@@ -1175,7 +1178,7 @@
           <ol class="mini-pipe">${FLOW.map((k, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}"><button type="button" data-set="${k}" title="${STG[k].tt()}"><i></i><span>${STG[k].t()}</span></button></li>`).join('')}</ol>
           ${ld.stage === 'lost' ? `<p class="tag grey" style="margin:-4px 0 12px">${STG.lost.t()}</p>` : ''}
           <div class="lead-card">
-            <p><b>${esc(ld.phone || '—')}</b>${ld.attempts ? ` <span class="tag warn">${ld.attempts} ${L('urinish', 'попыт.', ld.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</p>
+            <p><b>${esc(ld.phone || '—')}</b>${ld.email ? `<br><span class="muted">${esc(ld.email)}</span>` : ''}${ld.telegram ? `<br><span class="muted">@${esc(ld.telegram)}</span>` : ''}${ld.attempts ? ` <span class="tag warn">${ld.attempts} ${L('urinish', 'попыт.', ld.attempts === 1 ? 'attempt' : 'attempts')}</span>` : ''}</p>
             <div class="btn-row">${contactLinks(ld)}</div>
             ${detailRows(ld) ? `<dl class="lead-det">${detailRows(ld)}</dl>` : ''}
             ${ld.message ? `<div class="lead-msg"><p class="lbl">${L('Xabari', 'Сообщение', 'Their message')}</p><p>${esc(ld.message)}</p></div>` : ''}
@@ -1214,16 +1217,18 @@
       const leadAdd = v => {
         const p = openDrawer(`${dHead(L('Yangi ariza', 'Новая заявка', 'New lead'), L('Qoʻngʻiroq, Instagram, tavsiya…', 'Звонок, Instagram, рекомендация…', 'A call, Instagram, a referral…'))}
           <form id="lead-new">
-            <label>${L('Ism', 'Имя', 'Name')}<input name="name" maxlength="120" required></label>
-            <div class="row2"><label>${L('Telefon yoki Telegram', 'Телефон или Telegram', 'Phone or Telegram')}<input name="phone" maxlength="60" placeholder="+998 … / @username"></label>
-            <label>${L('Qayerdan', 'Откуда', 'Source')}<select name="source">${['instagram', 'telegram', 'phone', 'referral', 'website', 'other'].map(k => `<option value="${k}">${({ website: T('Sayt', 'Сайт', 'Website'), instagram: 'Instagram', telegram: 'Telegram', phone: T('Qoʻngʻiroq', 'Звонок', 'Phone call'), referral: T('Tavsiya', 'Рекомендация', 'Referral'), other: T('Boshqa', 'Другое', 'Other') })[k]}</option>`).join('')}</select></label></div>
+            <div class="row2"><label>${L('Ism', 'Имя', 'First name')}<input name="first" maxlength="60" required></label>
+            <label>${L('Familiya', 'Фамилия', 'Last name')}<input name="last" maxlength="60" required></label></div>
+            <div class="row2"><label>Email<input name="email" type="email" maxlength="120"></label>
+            <label>${L('Telefon yoki Telegram', 'Телефон или Telegram', 'Phone or Telegram')}<input name="phone" maxlength="60" placeholder="+998 … / @username"></label></div>
+            <label>${L('Qayerdan', 'Откуда', 'Source')}<select name="source">${['instagram', 'telegram', 'phone', 'referral', 'website', 'other'].map(k => `<option value="${k}">${({ website: T('Sayt', 'Сайт', 'Website'), instagram: 'Instagram', telegram: 'Telegram', phone: T('Qoʻngʻiroq', 'Звонок', 'Phone call'), referral: T('Tavsiya', 'Рекомендация', 'Referral'), other: T('Boshqa', 'Другое', 'Other') })[k]}</option>`).join('')}</select></label>
             <label>${L('Yoʻnalish', 'Направление', 'Interest')}<select name="interest">${Object.entries(GROUPS).concat(Object.entries(SUB).filter(([k]) => k.startsWith('academy-')).map(([k]) => [k, interestTxt(k)])).map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select></label>
             <label>${L('Izoh', 'Заметка', 'Note')}<textarea name="note" rows="3" maxlength="1000"></textarea></label>
             <p class="form-msg"></p><button class="btn btn-p" type="submit">${I('check')}${L('Qoʻshish', 'Добавить', 'Add')}</button>
           </form>`);
         p.querySelector('form').addEventListener('submit', async e => {
           e.preventDefault(); const f = e.target, btn = f.querySelector('[type=submit]'); btn.disabled = true;
-          try { const r = await api('lead-save', { body: { lead: { name: f.name.value, phone: f.phone.value, source: f.source.value, interest: f.interest.value, note: f.note.value } } }); leadsCache = [r.lead].concat(leadsCache || []); closeDrawer(); leadStage = 'applied'; leadCount(); RENDER.leads(v); }
+          try { const r = await api('lead-save', { body: { lead: { name: `${f.first.value.trim()} ${f.last.value.trim()}`.trim(), email: f.email.value.trim(), phone: f.phone.value, source: f.source.value, interest: f.interest.value, note: f.note.value } } }); leadsCache = [r.lead].concat(leadsCache || []); closeDrawer(); leadStage = 'applied'; leadCount(); RENDER.leads(v); }
           catch (err) { leadErr(p, err); btn.disabled = false; }
         });
       };

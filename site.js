@@ -234,7 +234,7 @@ const CONFIG = {
       aform.querySelector('.form-msg').className = 'form-msg';
       aform.classList.toggle('in-sheet', !!card); aform.classList.add('sheeted'); slot.appendChild(aform);
       sheet.showModal(); document.documentElement.classList.add('sheet-open');
-      setTimeout(() => aform.elements.name.focus({ preventScroll: true }), 60);
+      setTimeout(() => aform.elements.first.focus({ preventScroll: true }), 60);
     };
     sheet.addEventListener('close', () => { aform.classList.remove('in-sheet', 'sheeted'); home.appendChild(aform); document.documentElement.classList.remove('sheet-open'); });
     sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
@@ -259,27 +259,58 @@ const CONFIG = {
   }
 
   const M = {
-    need: { uz: 'Siz bilan bogʻlanishimiz uchun ismingiz va telefon raqamingiz yoki Telegram’ingizni yozing.', ru: 'Укажите имя и номер телефона или Telegram, чтобы мы могли с вами связаться.', en: 'Add your name and a phone number or Telegram so we can contact you.' },
+    need: { uz: 'Toʻldiring: ', ru: 'Заполните: ', en: 'Please add: ' },
     ok: { uz: 'Arizangiz yuborildi. Tez orada siz bilan bogʻlanamiz.', ru: 'Заявка отправлена. Мы скоро с вами свяжемся.', en: 'Sent. We will contact you soon.' },
     err: { uz: 'Yuborilmadi. Internetni tekshirib, qayta urinib koʻring.', ru: 'Не отправлено. Проверьте интернет и попробуйте ещё раз.', en: 'Not sent. Check your connection and try again.' }
   };
+  const FIELD = {
+    first: { uz: 'ism', ru: 'имя', en: 'first name' },
+    last: { uz: 'familiya', ru: 'фамилию', en: 'last name' },
+    email: { uz: 'toʻgʻri email', ru: 'правильный email', en: 'a valid email' },
+    phone: { uz: 'telefon raqami (kod bilan, masalan +998)', ru: 'номер телефона (с кодом, например +998)', en: 'a phone number with its country code (e.g. +998)' },
+    contact: { uz: 'bogʻlanish usuli', ru: 'способ связи', en: 'how we should contact you' }
+  };
+  const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
   document.querySelectorAll('form.lead-form').forEach(form => {
-    const msg = form.querySelector('.form-msg');
-    const show = (k, cls) => { msg.textContent = M[k][doc.lang] || M[k].en; msg.className = 'form-msg ' + cls; };
+    const msg = form.querySelector('.form-msg'), el = form.elements;
+    const say = (text, cls) => { msg.textContent = text; msg.className = 'form-msg ' + cls; };
+    const show = (k, cls) => say(M[k][doc.lang] || M[k].en, cls);
+    // Telegram chosen: offer the (optional) username field
+    const tg = form.querySelector('.tg-user');
+    const syncTg = () => { if (tg) tg.hidden = !(el.contact && el.contact.value === 'telegram'); };
+    form.addEventListener('change', e => { if (e.target.name === 'contact') { syncTg(); e.target.closest('fieldset').classList.remove('bad'); } });
+    form.addEventListener('input', e => { if (e.target.classList.contains('bad')) { e.target.classList.remove('bad'); e.target.removeAttribute('aria-invalid'); } });
+    syncTg();
+    const problems = () => {
+      const out = [], v = k => (el[k] ? el[k].value : '').trim();
+      const phone = v('phone'), digits = phone.replace(/\D/g, ''), how = el.contact ? el.contact.value : '';
+      if (!v('first')) out.push('first');
+      if (!v('last')) out.push('last');
+      if (!EMAIL.test(v('email'))) out.push('email');
+      if ((el.phone.required || phone || how === 'call' || how === 'whatsapp') && (digits.length < 8 || digits.length > 15)) out.push('phone');
+      if (el.contact && !how) out.push('contact');
+      return out;
+    };
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      if (!form.elements.name.value.trim() || !form.elements.phone.value.trim()) {
-        show('need', 'err');
-        (form.elements.name.value.trim() ? form.elements.phone : form.elements.name).focus();
+      form.querySelectorAll('.bad').forEach(x => { x.classList.remove('bad'); x.removeAttribute('aria-invalid'); });
+      const bad = problems();
+      if (bad.length) {
+        bad.forEach(k => { const f = k === 'contact' ? form.querySelector('[data-f="contact"]') : el[k]; f.classList.add('bad'); if (k !== 'contact') f.setAttribute('aria-invalid', 'true'); });
+        say((M.need[doc.lang] || M.need.en) + bad.map(k => FIELD[k][doc.lang] || FIELD[k].en).join(', ') + '.', 'err');
+        const first = bad[0] === 'contact' ? form.querySelector('[data-f="contact"] input') : el[bad[0]];
+        first.focus();
         return;
       }
       const submit = form.querySelector('button[type="submit"]');
       submit.disabled = true; msg.className = 'form-msg';
       try {
-        const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(form)).toString() });
+        form.querySelector('input[name="name"]').value = el.first.value.trim() + ' ' + el.last.value.trim();   // full name, for the email Netlify sends the team
+        const fd = new FormData(form);
+        const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fd).toString() });
         if (!res.ok) throw new Error(res.status);
         // keep the chosen options visible; clear only what was typed
-        form.querySelectorAll('input:not([type="radio"]):not([type="hidden"]), textarea').forEach(el => { el.value = ''; });
+        form.querySelectorAll('input:not([type="radio"]):not([type="hidden"]), textarea').forEach(x => { x.value = ''; });
         show('ok', 'ok');
       } catch (err) { show('err', 'err'); }
       finally { submit.disabled = false; }

@@ -79,11 +79,18 @@
       <h3 style="margin-bottom:20px"><span data-l="uz">Xabar qoldirish</span><span data-l="ru">Оставить сообщение</span><span data-l="en">Leave a message</span></h3>
       <form name="contact" method="POST" data-netlify="true" netlify-honeypot="company" class="lead-form" novalidate>
         <input type="hidden" name="form-name" value="contact">
+        <input type="hidden" name="name">
         <label class="hp">Company <input name="company" tabindex="-1" autocomplete="off"></label>
-        <div class="row2">
-          <label><span data-l="uz">Ismingiz</span><span data-l="ru">Ваше имя</span><span data-l="en">Your name</span><input name="name" autocomplete="name" required></label>
-          <label><span data-l="uz">Telefon, Telegram yoki email</span><span data-l="ru">Телефон, Telegram или email</span><span data-l="en">Phone, Telegram or email</span><input name="phone" autocomplete="tel" required></label>
+        <div class="row2 names">
+          <label><span data-l="uz">Ism</span><span data-l="ru">Имя</span><span data-l="en">First name</span><input name="first" autocomplete="given-name" maxlength="60" required></label>
+          <label><span data-l="uz">Familiya</span><span data-l="ru">Фамилия</span><span data-l="en">Last name</span><input name="last" autocomplete="family-name" maxlength="60" required></label>
         </div>
+        <div class="row2">
+          <label>Email<input name="email" type="email" autocomplete="email" inputmode="email" maxlength="120" required placeholder="name@example.com"></label>
+          <label><span data-l="uz">Telefon (ixtiyoriy)</span><span data-l="ru">Телефон (необязательно)</span><span data-l="en">Phone (optional)</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40" placeholder="+998 90 123 45 67"></label>
+        </div>
+        <fieldset class="opts-f" data-f="contact"><legend><span data-l="uz">Qanday bogʻlanaylik?</span><span data-l="ru">Как с вами связаться?</span><span data-l="en">How should we contact you?</span></legend><div class="opts"><label><input type="radio" name="contact" value="telegram"><span>Telegram</span></label><label><input type="radio" name="contact" value="whatsapp"><span>WhatsApp</span></label><label><input type="radio" name="contact" value="call"><span><span data-l="uz">Qoʻngʻiroq</span><span data-l="ru">Звонок</span><span data-l="en">Phone call</span></span></label><label><input type="radio" name="contact" value="email"><span>Email</span></label></div></fieldset>
+        <label class="tg-user" hidden><span data-l="uz">Telegram username (ixtiyoriy)</span><span data-l="ru">Username в Telegram (необязательно)</span><span data-l="en">Telegram username (optional)</span><input name="telegram" autocomplete="off" maxlength="40" placeholder="@username"></label>
         <fieldset class="opts-f" data-f="topic"><legend><span data-l="uz">Mavzu</span><span data-l="ru">Тема</span><span data-l="en">Topic</span></legend><div class="opts"><label><input type="radio" name="topic" value="media"><span><span data-l="uz">Media va hamkorlik</span><span data-l="ru">Медиа и партнёрство</span><span data-l="en">Media and partnerships</span></span></label><label><input type="radio" name="topic" value="guest"><span><span data-l="uz">Podkast mehmoni</span><span data-l="ru">Гость подкаста</span><span data-l="en">Podcast guest</span></span></label><label><input type="radio" name="topic" value="other" checked><span><span data-l="uz">Umumiy savol</span><span data-l="ru">Общий вопрос</span><span data-l="en">General question</span></span></label></div></fieldset>
         <label><span data-l="uz">Xabaringiz</span><span data-l="ru">Ваше сообщение</span><span data-l="en">Your message</span><textarea name="message" rows="3"></textarea></label>
         <div class="submit-row"><button class="btn btn-p" type="submit"><span data-l="uz">Xabar yuborish</span><span data-l="ru">Отправить сообщение</span><span data-l="en">Send message</span><svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
