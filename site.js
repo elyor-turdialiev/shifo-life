@@ -317,6 +317,59 @@ const CONFIG = {
     });
   });
 
+  /* ---------- Photos that cross-fade; the About story swaps its photo as you read ---------- */
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ROTS = new Set();
+  const step = r => {
+    const imgs = [...r.querySelectorAll(':scope > img')], dots = [...r.querySelectorAll('.rot-dots i')];
+    if (imgs.length < 2) return;
+    const i = imgs.findIndex(x => x.classList.contains('on')), n = (i + 1) % imgs.length;
+    imgs[i].classList.remove('on'); imgs[n].classList.add('on');
+    dots.forEach((d, k) => d.classList.toggle('on', k === n));
+    const cap = r.querySelector('.rot-cap');
+    if (cap) { cap.classList.add('swap'); setTimeout(() => { cap.textContent = imgs[n].dataset.cap || ''; cap.classList.remove('swap'); }, 400); }
+    const after = imgs[(n + 1) % imgs.length]; if (after.loading === 'lazy') after.loading = 'eager';   // load the next one early
+  };
+  document.querySelectorAll('[data-rot]').forEach(r => { const d = r.querySelector('.rot-dots i'); if (d) d.classList.add('on'); });
+  if ('IntersectionObserver' in window) {
+    const seen = new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? ROTS.add(e.target) : ROTS.delete(e.target)), { threshold: .3 });
+    document.querySelectorAll('[data-rot]').forEach(r => seen.observe(r));
+    // the sticky frame is hidden to the observer's eyes (aria only), so track the shown one directly
+    if (!still) setInterval(() => {
+      if (document.hidden) return;
+      ROTS.forEach(r => { if (!r.closest('.story-frame') || r.classList.contains('show')) step(r); });
+    }, 3600);
+  }
+
+  /* About story: the chapter nearest the middle of the screen is the one shown in the photo */
+  const story = document.querySelector('.story');
+  if (story) {
+    const shots = story.querySelectorAll('.story-frame > .rot'), chs = [...story.querySelectorAll('.story-ch')];
+    let cur = -1;
+    const show = n => {
+      if (n === cur) return; cur = n;
+      chs.forEach((c, k) => c.classList.toggle('on', k === n));
+      shots.forEach((r, k) => { r.classList.toggle('show', k === n); if (Math.abs(k - n) <= 1) r.querySelectorAll('img').forEach(im => { im.loading = 'eager'; }); });
+    };
+    const at = () => {
+      const mid = innerHeight / 2;
+      let best = 0, d = Infinity;
+      chs.forEach((c, k) => { const r = c.getBoundingClientRect(), x = Math.abs(r.top + r.height / 2 - mid); if (x < d) { d = x; best = k; } });
+      show(best);
+    };
+    let tick = false;
+    addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(() => { tick = false; at(); }); } }, { passive: true });
+    addEventListener('resize', at); at();
+  }
+
+  /* How-it-works steps: the line draws across and the steps appear one by one */
+  const stepLists = document.querySelectorAll('.steps');
+  if (stepLists.length && 'IntersectionObserver' in window && !still) {
+    doc.classList.add('anim-steps');
+    const so = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); so.unobserve(e.target); } }), { threshold: .35 });
+    stepLists.forEach(l => so.observe(l));
+  }
+
   const y = document.getElementById('year');
   if (y) y.textContent = new Date().getFullYear();
 })();

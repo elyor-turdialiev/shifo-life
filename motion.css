@@ -436,6 +436,7 @@ label.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:v
 .team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:36px}
 .tm-card{background:#fff;border-radius:22px;padding:26px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;box-shadow:0 1px 0 var(--line)}
 .p-ph{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--rose);color:var(--garnet);font-weight:600;font-size:1.15rem;font-stretch:135%;margin-bottom:10px}
+img.p-ph{object-fit:cover;display:block;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--rose)}
 .tm-card h3{font-size:1.15rem;margin:0}
 .tm-card .p-role{margin:0;color:var(--garnet);font-size:.92rem;font-weight:500}
 .tm-card .p-bio{margin:6px 0 0;color:var(--muted);font-size:.95rem;line-height:1.55}
