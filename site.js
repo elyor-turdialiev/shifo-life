@@ -187,7 +187,10 @@ const CONFIG = {
       const stars = n => '<span class="stars" aria-label="' + n + '/5">' + [1, 2, 3, 4, 5].map(i => '<i class="' + (i <= n ? 'on' : '') + '">★</i>').join('') + '</span>';
       const avg = list.reduce((a, r) => a + r.stars, 0) / list.length;
       sec.querySelector('[data-rv-sum]').innerHTML = '<b>' + avg.toFixed(1) + '</b>' + stars(Math.round(avg)) + '<span>' + list.length + '</span>';
-      sec.querySelector('[data-rv-list]').innerHTML = list.slice(0, 9).map(r => '<figure class="rv"><div>' + stars(r.stars) + '</div><blockquote>' + esc(r.text) + '</blockquote><figcaption><b>' + esc(r.name) + '</b>' + (r.level ? '<span>Medical English · ' + esc(r.level) + '</span>' : '') + '</figcaption></figure>').join('');
+      // a photo shows when photos/review-<name>.jpg exists (e.g. review-madina-k.jpg); otherwise the initials
+      const slug = n => String(n).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const ini = n => String(n).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+      sec.querySelector('[data-rv-list]').innerHTML = list.slice(0, 9).map(r => '<figure class="rv">' + stars(r.stars) + '<blockquote>' + esc(r.text) + '</blockquote><figcaption><span class="rv-av" aria-hidden="true">' + esc(ini(r.name)) + '<img src="photos/review-' + slug(r.name) + '.jpg" alt="" loading="lazy" onerror="this.remove()"></span><span><b>' + esc(r.name) + '</b>' + (r.level ? '<small>Medical English · ' + esc(r.level) + '</small>' : '') + '</span></figcaption></figure>').join('');
       sec.hidden = false;
     }).catch(() => {});
   });
@@ -201,6 +204,8 @@ const CONFIG = {
     if (go) { location.replace(go); return; }
   }
   const pick = (form, name, value) => {
+    const sel = form.querySelector('select[name="' + name + '"]');
+    if (sel) { const ok = [...sel.options].some(o => o.value === value); if (ok || value === '') sel.value = value; return ok; }
     const r = form.querySelector('input[type="radio"][name="' + name + '"][value="' + value + '"]');
     if (r) r.checked = true;
     return !!r;
@@ -240,7 +245,7 @@ const CONFIG = {
     sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
     sheet.querySelector('[data-sheet-close]').addEventListener('click', () => sheet.close());
     sheet.querySelector('[data-sheet-change]').addEventListener('click', () => {
-      pick(aform, 'plan', 'unsure'); sheet.close();
+      pick(aform, 'plan', ''); sheet.close();
       document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     document.querySelectorAll('a[data-plan]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); openSheet(a); }));
@@ -268,7 +273,8 @@ const CONFIG = {
     last: { uz: 'familiya', ru: 'фамилию', en: 'last name' },
     email: { uz: 'toʻgʻri email', ru: 'правильный email', en: 'a valid email' },
     phone: { uz: 'telefon raqami (kod bilan, masalan +998)', ru: 'номер телефона (с кодом, например +998)', en: 'a phone number with its country code (e.g. +998)' },
-    contact: { uz: 'bogʻlanish usuli', ru: 'способ связи', en: 'how we should contact you' }
+    contact: { uz: 'bogʻlanish usuli', ru: 'способ связи', en: 'how we should contact you' },
+    plan: { uz: 'tarif', ru: 'тариф', en: 'a plan' }
   };
   const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
   document.querySelectorAll('form.lead-form').forEach(form => {
@@ -279,6 +285,7 @@ const CONFIG = {
     const tg = form.querySelector('.tg-user');
     const syncTg = () => { if (tg) tg.hidden = !(el.contact && el.contact.value === 'telegram'); };
     form.addEventListener('change', e => { if (e.target.name === 'contact') { syncTg(); e.target.closest('fieldset').classList.remove('bad'); } });
+    form.addEventListener('change', e => { if (e.target.tagName === 'SELECT' && e.target.classList.contains('bad')) { e.target.classList.remove('bad'); e.target.removeAttribute('aria-invalid'); } });
     form.addEventListener('input', e => { if (e.target.classList.contains('bad')) { e.target.classList.remove('bad'); e.target.removeAttribute('aria-invalid'); } });
     syncTg();
     const problems = () => {
@@ -289,6 +296,7 @@ const CONFIG = {
       if (!EMAIL.test(v('email'))) out.push('email');
       if ((el.phone.required || phone || how === 'call' || how === 'whatsapp') && (digits.length < 8 || digits.length > 15)) out.push('phone');
       if (el.contact && !how) out.push('contact');
+      if (el.plan && el.plan.required && !el.plan.value) out.push('plan');
       return out;
     };
     form.addEventListener('submit', async e => {
@@ -297,6 +305,7 @@ const CONFIG = {
       const bad = problems();
       if (bad.length) {
         bad.forEach(k => { const f = k === 'contact' ? form.querySelector('[data-f="contact"]') : el[k]; f.classList.add('bad'); if (k !== 'contact') f.setAttribute('aria-invalid', 'true'); });
+        if (bad.includes('plan') && form.classList.contains('in-sheet')) form.classList.remove('in-sheet');
         say((M.need[doc.lang] || M.need.en) + bad.map(k => FIELD[k][doc.lang] || FIELD[k].en).join(', ') + '.', 'err');
         const first = bad[0] === 'contact' ? form.querySelector('[data-f="contact"] input') : el[bad[0]];
         first.focus();

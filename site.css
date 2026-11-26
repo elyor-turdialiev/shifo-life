@@ -407,7 +407,7 @@ form .btn{justify-self:start}
 /* Tap-to-choose options */
 .opts-f{border:0;margin:0;padding:0;min-width:0}
 .lead-form [hidden]{display:none}
-.lead-form input.bad,.lead-form textarea.bad{border-color:#C0392B;background:#FFF6F5}
+.lead-form input.bad,.lead-form textarea.bad,.lead-form select.bad{border-color:#C0392B;background-color:#FFF6F5}
 .opts-f.bad legend{color:#C0392B}
 .opts-f.bad .opts span{border-color:#E8B4AE}
 .opts-f legend{font-weight:600;font-size:.93rem;color:var(--ink);padding:0;margin-bottom:9px}
@@ -626,3 +626,54 @@ footer a:hover{color:#fff}
 .sec.sand .tm-card{box-shadow:none;border:1px solid rgba(134,24,47,.07)}
 .team-note{display:flex;gap:10px;align-items:flex-start;margin:22px 0 0;color:var(--muted);font-size:.95rem;max-width:70ch}
 .team-note .ic{width:18px;height:18px;color:var(--garnet);flex:none;margin-top:3px}
+
+/* Academy: path to nursing as a flow that draws itself */
+.steps.flow{grid-template-columns:repeat(var(--n),1fr);gap:24px}
+.steps.flow::before{right:calc((100% - (var(--n) - 1) * 24px) / var(--n) - 20px)}
+.steps.flow > li::before{transition:background .4s ease,color .4s ease,transform .4s ease}
+html.anim-steps .steps.flow:not(.in) > li::before{background:#EBDDE0;color:var(--muted);transform:scale(.85)}
+.steps.flow.in > li:nth-child(1)::before{transition-delay:.1s}
+.steps.flow.in > li:nth-child(2)::before{transition-delay:.4s}
+.steps.flow.in > li:nth-child(3)::before{transition-delay:.7s}
+.steps.flow.in > li:nth-child(4)::before{transition-delay:1s}
+.steps.flow.in > li:nth-child(5)::before{transition-delay:1.3s}
+.steps.flow.in > li:nth-child(2){transition-delay:.3s}
+.steps.flow.in > li:nth-child(3){transition-delay:.6s}
+.steps.flow.in > li:nth-child(4){transition-delay:.9s}
+.steps.flow.in > li:nth-child(5){transition-delay:1.2s}
+.steps.flow::before{transition-duration:1.6s}
+.steps.flow h4{font-size:1.05rem;margin-bottom:6px;white-space:nowrap}
+.steps.flow p{max-width:24ch;font-size:.95rem;line-height:1.55}
+.steps.flow p .link{display:block;margin-top:6px;font-weight:600;color:var(--garnet);text-decoration:underline;text-underline-offset:3px}
+.fl-ticks{list-style:none;padding:0;margin:12px 0 0;display:flex;flex-direction:column;gap:6px}
+.steps .fl-ticks li{padding:0;font-size:.86rem;color:var(--ink);display:flex;gap:7px;align-items:flex-start;line-height:1.4}
+.steps .fl-ticks li::before{content:"";counter-increment:none;width:6px;height:6px;border-radius:50%;background:var(--garnet);margin:7px 0 0;flex:none;box-shadow:none;position:static;display:block;transform:none}
+.steps .fl-ticks .link{font-weight:600;display:inline}
+.steps .fl-ticks .link .ic{width:15px;height:15px;vertical-align:-2px;margin-left:4px}
+@media (max-width:1000px){
+  .steps.flow{grid-template-columns:1fr;gap:28px}
+  .steps.flow::before{top:28px;bottom:28px;left:19px;right:auto;width:2px;height:auto;transform-origin:top}
+  html.anim-steps .steps.flow:not(.in)::before{transform:scaleY(0)}
+  .steps.flow > li{padding-left:62px}
+  .steps.flow h4{white-space:normal}
+  .steps.flow p{max-width:none}
+  .steps.flow > li::before{position:absolute;left:0;top:0;margin:0}
+}
+
+/* Media: music */
+.artists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.artist{min-width:0;background:#fff;border:1px solid rgba(134,24,47,.08);border-radius:20px;padding:22px 22px 18px;display:flex;flex-direction:column}
+.artist-h{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.artist-tile{width:48px;height:48px;border-radius:12px;background:linear-gradient(140deg,var(--garnet-2),var(--garnet-deep));color:#fff;display:grid;place-items:center;flex:none}
+.artist-tile .ic{width:22px;height:22px}
+.artist-h h3{margin:0;font-size:1.15rem}
+.artist-h p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.tracks{list-style:none;padding:6px 0;margin:0}
+.tracks a{display:grid;grid-template-columns:22px minmax(0,1fr) 18px;align-items:center;gap:10px;padding:9px 8px;margin:0 -8px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:.95rem;transition:background .15s}
+.tracks a:hover{background:var(--blush)}
+.tracks .tn{color:var(--muted);font-size:.85rem;text-align:right;font-variant-numeric:tabular-nums}
+.tracks .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tracks .ic{width:16px;height:16px;color:var(--garnet);opacity:.55;transition:opacity .15s}
+.tracks a:hover .ic{opacity:1}
+.artist-all{margin-top:6px;font-size:.92rem;font-weight:600;align-self:flex-start}
+@media (max-width:760px){.artists{grid-template-columns:minmax(0,1fr)}}
