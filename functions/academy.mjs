@@ -115,6 +115,14 @@ export default async (req) => {
   const q = Object.fromEntries(url.searchParams);
   const action = q.action || '';
   const store = getStore({ name: 'academy', consistency: 'strong' });
+  // Listing goes through the regular (eventual) edge: new keys show up there at once, and a listing through
+  // the strong-consistency endpoint can come back empty. Reads and writes stay strong.
+  const lister = getStore({ name: 'academy' });
+  const keys = async prefix => (await lister.list({ prefix })).blobs.map(b => b.key);
+  // Every student we know of: keys in the store, CRM assignments, and the ids the teacher's own list sends
+  // (from Netlify Identity), so a student's lessons show even if the listing misses them.
+  const studentIds = async (assign, extra) => [...new Set((await keys('s/')).map(k => k.split('/')[1])
+    .concat(Object.keys(assign || {}), String(extra || '').split(',').slice(0, 500)))].filter(sid => ID.test(sid));
 
   if (action === 'reviews' && req.method === 'GET') {
     const all = (await store.get('reviews', { type: 'json' })) || {};
@@ -220,13 +228,13 @@ export default async (req) => {
 
       if (action === 'board') {                       // teacher overview: hand-ins to review, upcoming lessons, lessons to mark
         if (!me.teacher) return fail(403, 'forbidden');
-        const [{ blobs }, assign, rooms] = await Promise.all([store.list({ prefix: 's/' }), getAssign(), getRooms()]);
+        const [assign, rooms] = await Promise.all([getAssign(), getRooms()]);
+        const sids = (await studentIds(assign, q.ids)).filter(sid => allowed(sid, assign));
         const review = [], lessons = [], toMark = [], now = Date.now();
-        await Promise.all(blobs.map(async b => {
-          const [, sid, kind] = b.key.split('/');
-          if (!allowed(sid, assign)) return;
-          if (kind === 'homework') (await read(sid, 'homework')).forEach(h => { if (h.submission) review.push({ student: sid, ...h }); });
-          if (kind === 'schedule') (await read(sid, 'schedule')).forEach(l => {
+        await Promise.all(sids.map(async sid => {
+          const [homework, schedule] = await Promise.all([read(sid, 'homework'), read(sid, 'schedule')]);
+          homework.forEach(h => { if (h.submission) review.push({ student: sid, ...h }); });
+          schedule.forEach(l => {
             const end = Date.parse(l.start) + (l.minutes || 60) * 60000;
             if (end > now) lessons.push({ student: sid, ...withRoom(l, sid, assign, rooms) });
             else if (!l.status || l.status === 'planned') { if (!me.limited || !l.teacher || l.teacher.id === me.id) toMark.push({ student: sid, ...l }); }
@@ -240,15 +248,14 @@ export default async (req) => {
 
       if (action === 'leads') {                       // the funnel: CEO, admin, account managers
         if (!me.money) return fail(403, 'manager');
-        const { blobs } = await store.list({ prefix: 'leads/' });
-        const leads = (await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' })))).filter(Boolean).map(leadOut).sort((a, b) => b.at.localeCompare(a.at));
+        const leads = (await Promise.all((await keys('leads/')).map(k => store.get(k, { type: 'json' })))).filter(Boolean).map(leadOut).sort((a, b) => b.at.localeCompare(a.at));
         return json(200, { leads, stages: STAGES });
       }
       if (action === 'crm') {                         // one row per student, teachers' hours, money (by role)
         if (!me.teacher) return fail(403, 'forbidden');
         const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(q.month || '') ? q.month : monthKey(Date.now());
-        const [{ blobs }, assign, pkgs] = await Promise.all([store.list({ prefix: 's/' }), getAssign(), getPkgs()]);
-        const every = [...new Set(blobs.map(b => b.key.split('/')[1]).concat(Object.keys(assign)))].filter(sid => ID.test(sid));
+        const [assign, pkgs] = await Promise.all([getAssign(), getPkgs()]);
+        const every = await studentIds(assign, q.ids);
         const sids = every.filter(sid => allowed(sid, assign)), hidden = every.filter(sid => !allowed(sid, assign));
         const rows = {}, teachers = {}, totals = { paid: 0, due: 0, overdue: 0, partial: 0, count: 0 }, now = Date.now();
         await Promise.all(sids.map(async sid => {

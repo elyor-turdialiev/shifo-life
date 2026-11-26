@@ -87,8 +87,9 @@ function cleanSettings(b) {
 export default async (req) => {
   const url = new URL(req.url), action = url.searchParams.get('action') || '';
   const store = getStore({ name: 'clinic', consistency: 'strong' });
+  const lister = getStore({ name: 'clinic' });   // listing via the regular edge (a strong-consistency listing can come back empty)
   const settings = async () => ({ ...DEFAULTS, ...((await store.get('settings', { type: 'json' })) || {}) });
-  const takenSet = async () => new Set((await store.list({ prefix: 'slot/' })).blobs.map(b => b.key.slice(5)));
+  const takenSet = async () => new Set((await lister.list({ prefix: 'slot/' })).blobs.map(b => b.key.slice(5)));
 
   try {
     /* ---------- public ---------- */
@@ -116,7 +117,7 @@ export default async (req) => {
       const count = +((await store.get(rlKey)) || 0);
       if (count >= PER_IP_DAY) return fail(429, 'too_many');
       const open = [];
-      for (const k of (await store.list({ prefix: 'b/' })).blobs) {
+      for (const k of (await lister.list({ prefix: 'b/' })).blobs) {
         const x = await store.get(k.key, { type: 'json' });
         if (x && digits(x.phone) === digits(phone) && ['booked', 'confirmed'].includes(x.status) && Date.parse(x.start) > Date.now()) open.push(x);
       }
@@ -140,7 +141,7 @@ export default async (req) => {
     if (req.method === 'GET' && action === 'settings') return json(200, { settings: await settings() });
     if (req.method === 'GET' && action === 'bookings') {
       const list = [];
-      for (const k of (await store.list({ prefix: 'b/' })).blobs) { const x = await store.get(k.key, { type: 'json' }); if (x) list.push(x); }
+      for (const k of (await lister.list({ prefix: 'b/' })).blobs) { const x = await store.get(k.key, { type: 'json' }); if (x) list.push(x); }
       list.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
       return json(200, { bookings: list, tz: (await settings()).tz });
     }
