@@ -417,6 +417,7 @@
     const url = l.link || l.room;
     if (!url) return `<span class="tag grey">${L('Havola yoʻq', 'Нет ссылки', 'No link yet')}</span>`;
     if (st === 'open') return `<a class="btn btn-p btn-sm" href="${esc(url)}" target="_blank" rel="noopener">${I('video')}${L('Qoʻshilish', 'Войти', 'Join')}</a>`;
+    if (new Date(l.start).toDateString() !== new Date().toDateString()) return '';   // "Opens 17:45" only makes sense on the day itself
     return `<button type="button" class="btn btn-s btn-sm" disabled title="${{ uz: 'Havola dars boshlanishidan 15 daqiqa oldin ochiladi', ru: 'Ссылка откроется за 15 минут до начала', en: 'The link opens 15 minutes before the lesson' }[doc.lang] || ''}">${I('clock')}<span>${L('Ochiladi', 'Откроется в', 'Opens')} ${timeFmt(new Date(Date.parse(l.start) - 15 * 60000))}</span></button>`;
   };
   const lessonItem = (l, extra) => {
@@ -475,6 +476,66 @@
     if (!m) return `<div class="card pkg"><div class="card-h"><h3>${title}</h3></div><p class="muted">${L('Bu oy uchun paket yoʻq.', 'На этот месяц пакета нет.', 'No package for this month.')}</p></div>`;
     return `<div class="card pkg"><div class="card-h"><h3>${title}</h3><span class="tag rose">${m.name ? esc(m.name) : L('Paketsiz', 'Без пакета', 'No package')} · ${monthFmt(m.month)}${m.of ? ` · ${L(`${m.part}/${m.of}-oy`, `месяц ${m.part} из ${m.of}`, `month ${m.part} of ${m.of}`)}` : ''}</span></div>
       <div class="pbars">${['teach', 'speak', 'mentor'].map(k => partBar(k, m.parts[k])).join('')}</div></div>`;
+  };
+  /* Next lesson: one card with a live countdown and the Start (teacher) / Join (student) button */
+  const UNITS = { uz: ['daq', 'soat', 'kun'], ru: ['мин', 'ч', 'д'], en: ['min', 'h', 'd'] };
+  const span = ms => {
+    const [mi, ho, da] = UNITS[doc.lang] || UNITS.en, m = Math.max(1, Math.ceil(ms / 60000));
+    if (m < 60) return `${m} ${mi}`;
+    const h = Math.floor(m / 60), r = m % 60;
+    if (h < 24) return r ? `${h} ${ho} ${r} ${mi}` : `${h} ${ho}`;
+    const d = Math.floor(h / 24), rh = h % 24;
+    return rh ? `${d} ${da} ${rh} ${ho}` : `${d} ${da}`;
+  };
+  const countTxt = l => {
+    const s = Date.parse(l.start), e = s + (l.minutes || 60) * 60000, now = Date.now();
+    if (now >= s) return { uz: `Davom etmoqda · ${span(e - now)} qoldi`, ru: `Идёт · осталось ${span(e - now)}`, en: `In progress · ${span(e - now)} left` }[doc.lang] || `In progress · ${span(e - now)} left`;
+    return { uz: `${span(s - now)}dan keyin boshlanadi`, ru: `Начнётся через ${span(s - now)}`, en: `Starts in ${span(s - now)}` }[doc.lang] || `Starts in ${span(s - now)}`;
+  };
+  // teacher side: open the room from 15 minutes before until the end
+  const startBtn = (l, big) => {
+    const url = l.link || l.room;
+    if (!url || lessonState(l) !== 'open') return '';
+    return `<a class="btn btn-p${big ? '' : ' btn-sm'}" href="${esc(url)}" target="_blank" rel="noopener">${I('video')}${L('Darsni boshlash', 'Начать урок', 'Start lesson')}</a>`;
+  };
+  const NEXT = new Map();
+  const nextGo = (l, teacherSide) => {
+    const url = l.link || l.room, st = lessonState(l);
+    if (!url) return teacherSide
+      ? `<button type="button" class="btn btn-s" data-room-jump>${I('video')}${L('Dars xonasi havolasini qoʻshing', 'Добавьте ссылку на комнату', 'Add your class room link')}</button>`
+      : `<span class="tag grey">${L('Havola darsdan oldin qoʻshiladi', 'Ссылка появится перед уроком', 'The link is added before the lesson')}</span>`;
+    if (st === 'open') return teacherSide ? startBtn(l, true) : `<a class="btn btn-p" href="${esc(url)}" target="_blank" rel="noopener">${I('video')}${L('Darsga qoʻshilish', 'Войти на урок', 'Join lesson')}</a>`;
+    return `<button type="button" class="btn btn-s" disabled>${I('clock')}${L('Ochiladi', 'Откроется в', 'Opens at')} ${timeFmt(new Date(Date.parse(l.start) - 15 * 60000))}</button>`;
+  };
+  const nextCard = (l, teacherSide, who) => {
+    if (!l) return '';
+    NEXT.set(l.id, { l, teacherSide, who });
+    const d = new Date(l.start), kind = l.kind && l.kind !== 'teach' ? ' · ' + KIND[l.kind] : '';
+    return `<div class="card next-card" data-next-id="${esc(l.id)}" data-next-state="${lessonState(l)}${l.link || l.room ? '' : '-nolink'}">
+      ${dateBlock(d)}
+      <div class="nc-what"><p class="k">${L('Keyingi dars', 'Следующий урок', 'Next lesson')}</p>
+        <h3>${l.title ? esc(l.title) : L('Dars', 'Урок', 'Lesson')}${who ? ` · ${esc(who)}` : ''}</h3>
+        <p class="muted">${dayFmt(d)} · ${timeFmt(d)} · ${l.minutes || 60} ${L('daq', 'мин', 'min')}${kind}</p></div>
+      <div class="nc-go"><p class="nc-count" data-count>${countTxt(l)}</p>${nextGo(l, teacherSide)}</div></div>`;
+  };
+  setInterval(() => document.querySelectorAll('.next-card').forEach(c => {
+    const x = NEXT.get(c.dataset.nextId); if (!x) return;
+    if (lessonState(x.l) === 'past') { c.remove(); return; }
+    const st = lessonState(x.l) + (x.l.link || x.l.room ? '' : '-nolink');
+    if (st !== c.dataset.nextState) c.outerHTML = nextCard(x.l, x.teacherSide, x.who);
+    else c.querySelector('[data-count]').textContent = countTxt(x.l);
+  }), 20000);
+  // "Add your class room link": go to the room form on the overview
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-room-jump]')) { sessionStorage.setItem('shifo-room-jump', '1'); if (location.hash === '#overview') window.dispatchEvent(new HashChangeEvent('hashchange')); else location.hash = '#overview'; }
+    const more = e.target.closest('[data-uncap]');
+    if (more) { const ul = more.previousElementSibling; ul.classList.toggle('open'); more.innerHTML = ul.classList.contains('open') ? L('Kamroq koʻrsatish', 'Свернуть', 'Show fewer') : more.dataset.all; }
+  });
+  // long lists: the first 5, then "Show all"
+  const capList = (items, render, n = 5) => {
+    if (!items.length) return '';
+    const all = `${L('Hammasini koʻrsatish', 'Показать все', 'Show all')} (${items.length})`;
+    return `<ul class="list${items.length > n ? ' capped' : ''}">${items.map(render).join('')}</ul>${items.length > n ? `<button type="button" class="link show-all" data-uncap data-all="${esc(all)}">${all}</button>` : ''}`;
   };
   const splitLessons = list => {
     const now = Date.now(), end = l => Date.parse(l.start) + (l.minutes || 60) * 60000;
@@ -729,6 +790,7 @@
           <div class="card kpi"><p class="k">${I('edit')}${L('Uy vazifasi', 'Домашка', 'Homework')}</p><b>${todo.length}</b><small>${L('topshirish kerak', 'нужно сдать', 'to hand in')}</small>
             ${due ? `<div class="callout" style="margin-top:16px">${I('wallet')}<span>${monthFmt(due.month)}: ${due.status === 'overdue' ? L('toʻlov muddati oʻtgan', 'оплата просрочена', 'payment overdue') : L('toʻlov kutilmoqda', 'ожидается оплата', 'payment due')}</span></div>` : ''}</div>
         </div>
+        ${next[0] ? `<div style="margin-top:18px">${nextCard(next[0], false, '')}</div>` : ''}
         <div style="margin-top:18px">${packageCard(D.balance, L('Mening paketim', 'Мой пакет', 'My package'))}</div>
         <div class="grid g2 ov-pair" style="margin-top:18px">
           <div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Next lessons')}</h3><a class="link" href="#schedule">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
@@ -755,10 +817,10 @@
         try { await load(); } catch (e) { v.innerHTML = failed(e); return; }
         const { next, past } = splitLessons(D.schedule);
         const TTs = D.timetable && D.timetable.slots && D.timetable.slots.length ? D.timetable : null;
-        v.innerHTML = `${TTs ? `<div class="card tt-card" style="margin-bottom:18px"><div class="card-h"><h3>${L('Haftalik jadval', 'Расписание на неделю', 'Weekly timetable')}</h3><span class="muted" style="font-size:.88rem">${L('Vaqt', 'Время', 'Times')}: ${esc(tzName(TTs.tz))}</span></div><div class="tt-chips">${ttChips(TTs)}</div></div>` : ''}
+        v.innerHTML = `${next[0] ? `<div style="margin-bottom:18px">${nextCard(next[0], false, '')}</div>` : ''}${TTs ? `<div class="card tt-card" style="margin-bottom:18px"><div class="card-h"><h3>${L('Haftalik jadval', 'Расписание на неделю', 'Weekly timetable')}</h3><span class="muted" style="font-size:.88rem">${L('Vaqt', 'Время', 'Times')}: ${esc(tzName(TTs.tz))}</span></div><div class="tt-chips">${ttChips(TTs)}</div></div>` : ''}
           <div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Upcoming lessons')}</h3><span class="tag rose">${L('Onlayn', 'Онлайн', 'Online')}</span></div>
-          ${next.length ? `<ul class="list">${next.map(l => lessonItem(l)).join('')}</ul>` : `<p class="muted">${L('Oʻqituvchingiz darslarni qoʻshganda shu yerda koʻrinadi.', 'Занятия появятся здесь, когда преподаватель их добавит.', 'Lessons appear here when your teacher adds them.')}</p>`}</div>
-          ${past.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oʻtgan darslar', 'Прошедшие занятия', 'Past lessons')}</h3></div><ul class="list">${past.slice(0, 12).map(l => lessonItem(l)).join('')}</ul></div>` : ''}
+          ${next.length ? capList(next, l => lessonItem(l)) : `<p class="muted">${L('Oʻqituvchingiz darslarni qoʻshganda shu yerda koʻrinadi.', 'Занятия появятся здесь, когда преподаватель их добавит.', 'Lessons appear here when your teacher adds them.')}</p>`}</div>
+          ${past.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oʻtgan darslar', 'Прошедшие занятия', 'Past lessons')}</h3></div>${capList(past.slice(0, 30), l => lessonItem(l))}</div>` : ''}
           <p class="note">${L('Vaqt sizning mahalliy vaqtingizda. Havola dars boshlanishidan 15 daqiqa oldin ochiladi.', 'Время указано по вашему часовому поясу. Ссылка откроется за 15 минут до начала.', 'Times are in your local time. The link opens 15 minutes before the lesson.')}</p>`;
       };
 
@@ -966,6 +1028,8 @@
           <div class="card"><div class="card-h"><h3>${L('Tekshirish kerak', 'Ждут проверки', 'To review')}</h3><a class="link" href="#review">${L('Hammasi', 'Все', 'See all')}${I('arrow')}</a></div>
             ${waiting.length ? waiting.slice(0, 4).map(h => `<div class="hwi slim"><span class="avatar sm">${esc(initials(who(h.student) || '?'))}</span><div><b>${esc(h.title)}</b><span class="meta">${esc(who(h.student))} · ${dayFmt(new Date(h.submission.at))}</span></div><button type="button" class="btn btn-p btn-sm" data-rv="${esc(h.student)}|${esc(h.id)}">${L('Tekshirish', 'Проверить', 'Review')}</button></div>`).join('') : `<p class="muted">${L('Hammasi tekshirildi.', 'Всё проверено.', 'All caught up.')}</p>`}</div>
         </div>`;
+        const myNext = board.lessons.find(l => !l.teacher || l.teacher.id === ME_ID);
+        if (myNext) v.insertAdjacentHTML('afterbegin', `<div class="next-wrap" style="margin-bottom:18px">${nextCard(myNext, true, who(myNext.student))}</div>`);
         /* lessons that ended and still need marking: taught, late cancel / no-show, cancelled in time */
         const tm = board.toMark || [];
         if (tm.length) {
@@ -978,15 +1042,17 @@
             catch (e) { b.disabled = false; toast(errMsg(e)); }
           }));
         }
+        const nw = v.querySelector('.next-wrap'); if (nw) v.prepend(nw);   // the next lesson stays on top
         if (roles.includes('teacher') || isAdmin) {
           v.insertAdjacentHTML('beforeend', `<form class="card room-card" style="margin-top:18px" id="room-form"><div class="card-h"><h3>${L('Mening dars xonam', 'Моя комната для занятий', 'My class room')}</h3>${board.room ? `<span class="tag">${I('check')}${L('Saqlangan', 'Сохранено', 'Saved')}</span>` : `<span class="tag warn">${L('Kiritilmagan', 'Не указана', 'Not set')}</span>`}</div>
             <p class="muted" style="margin:-4px 0 12px;font-size:.9rem">${L('Doimiy Zoom yoki Google Meet havolangiz. Havolasiz darslaringiz shu xonadan foydalanadi: har darsga havola qoʻyish shart emas.', 'Ваша постоянная ссылка Zoom или Google Meet. Ваши занятия без своей ссылки используют её: не нужно добавлять ссылку к каждому занятию.', 'Your permanent Zoom or Google Meet link. Your lessons without their own link use it, so you don’t add a link to every lesson.')}</p>
             <div class="room-row"><input name="link" type="url" inputmode="url" placeholder="https://zoom.us/j/…" value="${esc(board.room || '')}" aria-label="Class room link"><button class="btn btn-p btn-sm" type="submit">${I('check')}${L('Saqlash', 'Сохранить', 'Save')}</button></div><p class="form-msg"></p></form>`);
+          if (sessionStorage.getItem('shifo-room-jump')) { sessionStorage.removeItem('shifo-room-jump'); const rf = v.querySelector('#room-form'); rf.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => rf.link.focus({ preventScroll: true }), 400); }
           v.querySelector('#room-form').addEventListener('submit', async e => {
             e.preventDefault(); const f = e.target, btn = f.querySelector('[type=submit]'), m = f.querySelector('.form-msg'), link = f.link.value.trim();
             if (link && !/^https:\/\/\S+$/i.test(link)) { m.innerHTML = L('Havola https:// bilan boshlanishi kerak.', 'Ссылка должна начинаться с https://.', 'The link must start with https://.'); m.className = 'form-msg err'; return; }
             btn.disabled = true;
-            try { const r = await api('room-save', { body: { link } }); board.room = r.room; toast(L('Xona saqlandi.', 'Комната сохранена.', 'Room saved.')); rerender('overview'); }
+            try { const r = await api('room-save', { body: { link } }); board = null; await getBoard(true); toast(L('Xona saqlandi.', 'Комната сохранена.', 'Room saved.')); rerender('overview'); }
             catch (err) { m.innerHTML = errMsg(err); m.className = 'form-msg err'; btn.disabled = false; }
           });
         }
@@ -1017,7 +1083,9 @@
         v.innerHTML = loading;
         try { await Promise.all([getRoster(), getBoard(true)]); } catch (e) { v.innerHTML = failed(e); return; }
         v.innerHTML = `<div class="card"><div class="card-h"><h3>${L('Barcha talabalar darslari', 'Занятия всех студентов', 'Lessons for all students')}</h3><span class="muted" style="font-size:.9rem">${L('Darsni talaba sahifasida qoʻshing', 'Добавляйте занятия на странице студента', 'Add lessons on a student’s page')}</span></div>
-          ${board.lessons.length ? `<ul class="list">${board.lessons.map(l => lessonItem({ ...l, who: who(l.student) }, `<a class="btn btn-s btn-sm" href="#students" data-goto="${esc(l.student)}">${L('Ochish', 'Открыть', 'Open')}</a>`)).join('')}</ul>` : `<p class="muted">${L('Rejalashtirilgan dars yoʻq.', 'Нет запланированных занятий.', 'No lessons planned.')}</p>`}</div>`;
+          ${board.lessons.length ? capList(board.lessons, l => lessonItem({ ...l, who: who(l.student) }, `<div class="row-act">${startBtn(l)}<a class="btn btn-s btn-sm" href="#students" data-goto="${esc(l.student)}">${L('Ochish', 'Открыть', 'Open')}</a></div>`)) : `<p class="muted">${L('Rejalashtirilgan dars yoʻq.', 'Нет запланированных занятий.', 'No lessons planned.')}</p>`}</div>`;
+        const myNext = board.lessons.find(l => !l.teacher || l.teacher.id === ME_ID);
+        if (myNext) v.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:18px">${nextCard(myNext, true, who(myNext.student))}</div>`);
         v.querySelectorAll('[data-goto]').forEach(a => a.addEventListener('click', () => { openStudent = a.dataset.goto; rendered.students = false; }));
       };
 
@@ -1381,13 +1449,13 @@
           }
           if (tab === 'lessons') {
             const { next, past } = splitLessons(S.schedule);
-            const actions = l => `<div class="row-act">${unmarked(l) ? markBtns(l) : ''}<button type="button" class="icon-btn" data-edit-lesson="${esc(l.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-lesson="${esc(l.id)}" aria-label="Delete">${I('x')}</button></div>`;
+            const actions = l => `<div class="row-act">${startBtn(l)}${unmarked(l) ? markBtns(l) : ''}<button type="button" class="icon-btn" data-edit-lesson="${esc(l.id)}" aria-label="Edit">${I('edit')}</button><button type="button" class="icon-btn" data-del-lesson="${esc(l.id)}" aria-label="Delete">${I('x')}</button></div>`;
             const toMark = S.schedule.filter(unmarked).length;
             const TTs = S.timetable && S.timetable.slots && S.timetable.slots.length ? S.timetable : null, nm = nextMonthKey();
             const ttCard = `<div class="card tt-card" style="margin-bottom:18px"><div class="card-h"><h3>${L('Haftalik jadval', 'Расписание на неделю', 'Weekly timetable')}</h3><div class="btn-row">${TTs ? `<button type="button" class="btn btn-p btn-sm" data-tt-next>${I('calendar')}${L(`${esc(monthTxtIn(nm, 'uz'))} darslarini yaratish`, `Создать занятия: ${esc(monthTxtIn(nm, 'ru'))}`, `Create ${esc(monthTxtIn(nm, 'en'))} lessons`)}</button>` : ''}<button type="button" class="btn ${TTs ? 'btn-s' : 'btn-p'} btn-sm" data-tt-edit>${I('edit')}${TTs ? L('Oʻzgartirish', 'Изменить', 'Change') : L('Jadval tuzish', 'Составить расписание', 'Set a timetable')}</button></div></div>
               ${TTs ? `<div class="tt-chips">${ttChips(TTs)}</div><p class="muted" style="margin-top:10px;font-size:.88rem">${L('Vaqt', 'Время', 'Times')}: ${esc(tzName(TTs.tz))}${TTs.teacher ? ' · ' + esc(TTs.teacher.name) : ''}</p>` : `<p class="muted">${L('Kunlar va vaqtni bir marta tanlang: sayt butun oy darslarini yaratadi. Keyin istalgan darsni alohida oʻzgartirish mumkin.', 'Выберите дни и время один раз: сайт создаст занятия на весь месяц. Потом любое занятие можно изменить отдельно.', 'Pick the days and times once: the site creates the whole month’s lessons. You can still change any single lesson afterwards.')}</p>`}</div>`;
-            body = `${ttCard}<div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Upcoming lessons')}</h3><button type="button" class="btn btn-p btn-sm" data-add-lesson>${I('calendar')}${L('Dars qoʻshish', 'Добавить занятие', 'Add a lesson')}</button></div>
-              ${next.length ? `<ul class="list">${next.map(l => lessonItem(l, actions(l))).join('')}</ul>` : `<p class="muted">${L('Rejalashtirilgan dars yoʻq.', 'Нет запланированных занятий.', 'No lessons planned.')}</p>`}</div>
+            body = `${next[0] ? `<div style="margin-bottom:18px">${nextCard(next[0], true, '')}</div>` : ''}${ttCard}<div class="card"><div class="card-h"><h3>${L('Keyingi darslar', 'Ближайшие занятия', 'Upcoming lessons')}</h3><button type="button" class="btn btn-p btn-sm" data-add-lesson>${I('calendar')}${L('Dars qoʻshish', 'Добавить занятие', 'Add a lesson')}</button></div>
+              ${next.length ? capList(next, l => lessonItem(l, actions(l))) : `<p class="muted">${L('Rejalashtirilgan dars yoʻq.', 'Нет запланированных занятий.', 'No lessons planned.')}</p>`}</div>
               ${past.length ? `<div class="card" style="margin-top:18px"><div class="card-h"><h3>${L('Oʻtgan darslar', 'Прошедшие занятия', 'Past lessons')}</h3>${toMark ? `<span class="tag warn">${toMark} ${L('belgilanmagan', 'не отмечено', 'to mark')}</span>` : ''}</div><ul class="list lessons-past">${past.slice(0, 30).map(l => lessonItem(l, actions(l))).join('')}</ul></div>` : ''}`;
           }
           if (tab === 'homework') {

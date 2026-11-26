@@ -92,9 +92,9 @@ body.app{background:#FBF8F8}
 .list{list-style:none;padding:0;display:grid;gap:4px}
 .list li{display:flex;align-items:center;gap:14px;padding:12px;border-radius:14px}
 .list li:hover{background:#FBF6F6}
-.list .when{width:56px;flex:none;text-align:center;border-radius:12px;background:var(--rose);color:var(--garnet);padding:6px 0;line-height:1.1}
-.list .when b{display:block;font-size:1.2rem}
-.list .when span{font-size:.72rem;font-weight:600;text-transform:uppercase}
+.list .when,.next-card .when{width:56px;flex:none;text-align:center;border-radius:12px;background:var(--rose);color:var(--garnet);padding:6px 0;line-height:1.1}
+.list .when b,.next-card .when b{display:block;font-size:1.2rem}
+.list .when span,.next-card .when span{font-size:.72rem;font-weight:600;text-transform:uppercase}
 .list .what{flex:1;min-width:0}
 .list .what b{display:block;color:var(--ink);font-size:.98rem}
 .list .what span{color:var(--muted);font-size:.88rem}
@@ -762,3 +762,23 @@ button.link{background:none;border:0;padding:0;font:inherit;font-weight:600;curs
 .lead-det div{min-width:0}
 .lead-det dt{font-size:.78rem;color:var(--muted);margin:0}
 .lead-det dd{margin:2px 0 0;font-weight:600;color:var(--ink);font-size:.93rem}
+
+/* Next lesson: countdown + Start / Join */
+.next-card{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;}
+.next-card .when{width:64px;padding:9px 0}
+.next-card .when b{font-size:1.45rem}
+.next-card{border:1.5px solid var(--rose, #F3DADF);background:linear-gradient(0deg,#fff,#fff)}
+.next-card .nc-what .k{margin:0 0 2px;color:var(--garnet);font-weight:600;font-size:.85rem}
+.next-card h3{margin:0;font-size:1.15rem}
+.next-card .nc-what .muted{margin:4px 0 0;font-size:.93rem}
+.next-card .nc-go{display:flex;flex-direction:column;align-items:flex-end;gap:8px;text-align:right}
+.next-card .nc-count{margin:0;font-weight:600;color:var(--ink);font-size:.95rem}
+.next-card[data-next-state="open"]{border-color:var(--garnet);box-shadow:0 0 0 4px rgba(134,24,47,.08)}
+@media (max-width:640px){
+  .next-card{grid-template-columns:auto 1fr}
+  .next-card .nc-go{grid-column:1 / -1;align-items:stretch;text-align:left}
+  .next-card .nc-go .btn{justify-content:center}
+}
+/* long lesson lists: first 5, then "Show all" */
+.list.capped:not(.open) > li:nth-child(n+6){display:none}
+.show-all{margin-top:12px;font-size:.93rem}
