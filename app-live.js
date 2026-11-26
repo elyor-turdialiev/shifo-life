@@ -915,7 +915,9 @@
         crmHidden = c ? c.hidden || [] : [];
         return (roster = r.students.filter(x => !crmHidden.includes(x.id)));   // a teacher sees their own and unassigned students
       };
-      const getBoard = async (fresh) => (!fresh && board) || (board = await api('board'));
+      // the teacher's student list (Netlify Identity) goes along, so every student's lessons are found
+      const idsParam = async () => { try { return { ids: (await getRoster()).map(x => x.id).join(',') }; } catch (e) { return {}; } };
+      const getBoard = async (fresh) => (!fresh && board) || (board = await api('board', { params: await idsParam() }));
       const who = id => { const s = (roster || []).find(x => x.id === id); return s ? (s.name || s.email) : ''; };
       const setCounts = () => document.querySelectorAll('[data-review-count]').forEach(c => { const n = board ? board.review.filter(h => !h.review).length : 0; c.textContent = n; c.hidden = !n; });
       Promise.all([getRoster(), getBoard()]).then(setCounts).catch(() => {});
@@ -1073,7 +1075,7 @@
       /* students list + one student's page */
       /* ---------------- CRM ---------------- */
       let crmCache = {}, crmMonth = curMonth(), crmTab = 'students';
-      const getCrm = async m => crmCache[m] || (crmCache[m] = await api('crm', { params: { month: m } }));
+      const getCrm = async m => crmCache[m] || (crmCache[m] = await api('crm', { params: { month: m, ...(await idsParam()) } }));
       const shiftMonth = (m, d) => { const [y, mo] = m.split('-').map(Number), x = new Date(Date.UTC(y, mo - 1 + d, 15)); return x.toISOString().slice(0, 7); };
       /* ---------- the student funnel: Applied → Reached → Confirmed → Trial done → Payment received → Scheduled ---------- */
       const FLOW = ['applied', 'reached', 'confirmed', 'trial', 'paid', 'scheduled'];

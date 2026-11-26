@@ -470,13 +470,13 @@ html.sheet-open{overflow:hidden}
 
 /* Contact: shortcuts to each field's own form */
 .go-list{display:grid;gap:10px;margin:28px 0 8px}
-.go{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
-.go:hover{border-color:var(--garnet)}
-.go .fi{width:40px;height:40px;border-radius:12px;background:var(--rose);color:var(--garnet);display:grid;place-items:center;flex:none}
-.go > span:nth-child(2){flex:1;min-width:0}
-.go b{display:block;font-size:1rem}
-.go small{display:block;color:var(--muted);font-size:.9rem}
-.go > .ic{color:var(--garnet);width:18px;height:18px;flex:none}
+.go-card{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}
+.go-card:hover{border-color:var(--garnet)}
+.go-card .fi{width:40px;height:40px;border-radius:12px;background:var(--rose);color:var(--garnet);display:grid;place-items:center;flex:none}
+.go-card > span:nth-child(2){flex:1;min-width:0}
+.go-card b{display:block;font-size:1rem}
+.go-card small{display:block;color:var(--muted);font-size:.9rem}
+.go-card > .ic{color:var(--garnet);width:18px;height:18px;flex:none}
 
 /* Footer */
 footer{background:var(--ink);color:rgba(255,255,255,.65);padding:72px 0 36px;font-size:.95rem}
