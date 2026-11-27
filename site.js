@@ -330,14 +330,14 @@ const CONFIG = {
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ROTS = new Set();
   const step = r => {
-    const imgs = [...r.querySelectorAll(':scope > img')], dots = [...r.querySelectorAll('.rot-dots i')];
+    const imgs = [...r.querySelectorAll(':scope > picture')], dots = [...r.querySelectorAll('.rot-dots i')];
     if (imgs.length < 2) return;
     const i = imgs.findIndex(x => x.classList.contains('on')), n = (i + 1) % imgs.length;
     imgs[i].classList.remove('on'); imgs[n].classList.add('on');
     dots.forEach((d, k) => d.classList.toggle('on', k === n));
     const cap = r.querySelector('.rot-cap');
     if (cap) { cap.classList.add('swap'); setTimeout(() => { cap.textContent = imgs[n].getAttribute('data-cap-' + doc.lang) || imgs[n].getAttribute('data-cap-en') || ''; cap.classList.remove('swap'); }, 400); }
-    const after = imgs[(n + 1) % imgs.length]; if (after.loading === 'lazy') after.loading = 'eager';   // load the next one early
+    const after = imgs[(n + 1) % imgs.length].querySelector('img'); if (after.loading === 'lazy') after.loading = 'eager';   // load the next one early
   };
   document.querySelectorAll('[data-rot]').forEach(r => { const d = r.querySelector('.rot-dots i'); if (d) d.classList.add('on'); });
   if ('IntersectionObserver' in window) {
@@ -381,4 +381,42 @@ const CONFIG = {
 
   const y = document.getElementById('year');
   if (y) y.textContent = new Date().getFullYear();
+})();
+
+/* Course topics: "Show all 12" on phones */
+document.querySelectorAll('[data-wk-more]').forEach(b => b.addEventListener('click', () => {
+  const ol = b.previousElementSibling, open = ol.classList.toggle('open');
+  b.setAttribute('aria-expanded', open); b.hidden = open;
+}));
+/* Steps section: dark from 19:00 to 06:00 local time */
+document.querySelectorAll('[data-daynight]').forEach(s => {
+  const h = new Date().getHours(); s.classList.toggle('dark', h >= 19 || h < 6);
+});
+/* Pink light that trails the mouse, like a soft spotlight. Off on touch screens and with reduced motion. */
+(() => {
+  if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (document.body.classList.contains('app')) return;
+  const g = document.createElement('div'); g.className = 'glow'; g.setAttribute('aria-hidden', 'true'); document.body.appendChild(g);
+  let x = innerWidth / 2, y = innerHeight / 2, tx = x, ty = y, run = false;
+  const step = () => {
+    x += (tx - x) * .12; y += (ty - y) * .12;
+    g.style.transform = `translate3d(${x}px,${y}px,0)`;
+    if (Math.abs(tx - x) + Math.abs(ty - y) > .3) requestAnimationFrame(step); else run = false;
+  };
+  addEventListener('pointermove', e => {
+    tx = e.clientX; ty = e.clientY; g.classList.add('on');
+    const el = document.elementFromPoint(tx, ty);
+    g.classList.toggle('hot', !!(el && el.closest('a,button,.format,.plan,select,input,textarea')));
+    g.classList.toggle('screen', !!(el && el.closest('.dark,.format,.slider,.plan.hot,.sec.dark,footer')));
+    if (!run) { run = true; requestAnimationFrame(step); }
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => g.classList.remove('on'));
+})();
+
+/* Album covers are dealt out the first time the card comes into view */
+(() => {
+  const els = document.querySelectorAll('[data-deal]'); if (!els.length) return;
+  if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('dealt')); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('dealt'); io.unobserve(e.target); } }), { threshold: .4 });
+  els.forEach(e => io.observe(e));
 })();

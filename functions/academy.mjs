@@ -58,10 +58,10 @@ async function whoIs(req) {
    Hours left at the end of a paid month carry over to the next month once, then expire. */
 const PARTS = ['teach', 'speak', 'mentor'];
 const DEFAULT_PACKAGES = [
-  { id: 'general', name: 'General English', price: 249.99, parts: { teach: 8, speak: 2, mentor: 1 } },
-  { id: 'medical', name: 'Medical English', price: 299.99, parts: { teach: 8, speak: 2, mentor: 1 } },
-  { id: 'intense', name: 'Medical English Intense', price: 359.99, parts: { teach: 12, speak: 3, mentor: 2 } },
-  { id: 'program-3m', name: '3-Month Program', price: 990.11, months: 3, parts: { teach: 12, speak: -1, mentor: 1 } }
+  { id: 'general', name: 'General English', price: 250, parts: { teach: 8, speak: 2, mentor: 1 } },
+  { id: 'medical', name: 'Medical English', price: 300, parts: { teach: 8, speak: 2, mentor: 1 } },
+  { id: 'intense', name: 'Medical English Intense', price: 360, parts: { teach: 12, speak: 3, mentor: 2 } },
+  { id: 'program-3m', name: '3-Month Program', price: 990, months: 3, parts: { teach: 12, speak: -1, mentor: 1 } }
 ];
 const UNL = -1;
 /* the student funnel: website applications and leads added by hand */
