@@ -1726,7 +1726,8 @@
             <p>${ST[b.status]}</p>
             <dl class="kv">
               <dt>${L('Telefon', 'Телефон', 'Phone')}</dt><dd><a class="link" href="tel:${esc(b.phone)}">${esc(b.phone)}</a></dd>
-              <dt>${L('Aloqa', 'Связь', 'Contact via')}</dt><dd><a class="btn btn-s btn-sm" href="${esc(contactLink(b))}" target="_blank" rel="noopener">${I('chat')}${CN[b.contact]}${b.contactDetail ? ' · ' + esc(b.contactDetail) : ''}</a></dd>
+              ${b.email ? `<dt>Email</dt><dd><a class="link" href="mailto:${esc(b.email)}">${esc(b.email)}</a></dd>` : ''}
+              <dt>${L('Aloqa', 'Связь', 'Contact via')}</dt><dd><a class="btn btn-s btn-sm" href="${esc(contactLink(b))}" target="_blank" rel="noopener">${I('chat')}${CN[b.contact]}${b.contactDetail && b.contactDetail !== b.email ? ' · ' + esc(b.contactDetail) : ''}</a></dd>
               ${b.forWhom === 'family' ? `<dt>${L('Kim uchun', 'Для кого', 'For')}</dt><dd>${L('Oila aʼzosi', 'Член семьи', 'A family member')}</dd>` : ''}
               ${b.condition ? `<dt>${L('Holat', 'Ситуация', 'Situation')}</dt><dd>${COND[b.condition] || '—'}</dd>` : ''}
               <dt>${L('Til', 'Язык', 'Language')}</dt><dd>${esc((b.lang || '').toUpperCase())}</dd>

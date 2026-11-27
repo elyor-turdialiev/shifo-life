@@ -108,8 +108,11 @@ export default async (req) => {
       if (name.length < 2) return fail(400, 'name');
       if (digits(phone).length < 7) return fail(400, 'phone');
       if (!CONTACTS.includes(contact)) return fail(400, 'contact');
-      const detail = str(b.contactDetail, 120);
-      if ((contact === 'zoom' || contact === 'teams') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(detail)) return fail(400, 'email');
+      const okMail = v => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v);
+      const email = str(b.email, 120).toLowerCase();
+      if (b.email !== undefined && !okMail(email)) return fail(400, 'email');
+      const detail = str(b.contactDetail, 120) || email;
+      if ((contact === 'zoom' || contact === 'teams') && !okMail(detail)) return fail(400, 'email');
       if (!b.consent) return fail(400, 'consent');
 
       const ip = (req.headers.get('x-nf-client-connection-ip') || req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim().replace(/[^\w.:-]/g, '');
@@ -126,7 +129,7 @@ export default async (req) => {
       const id = uid();
       const lock = await store.set(`slot/${start}`, id, { onlyIfNew: true });
       if (lock && lock.modified === false) return fail(409, 'slot_gone');
-      const booking = { id, start, minutes: S.minutes, tz: S.tz, name, phone, contact, contactDetail: detail,
+      const booking = { id, start, minutes: S.minutes, tz: S.tz, name, first: str(b.first, 60), last: str(b.last, 60), email, phone, contact, contactDetail: detail,
         forWhom: b.forWhom === 'family' ? 'family' : 'me', condition: CONDITIONS.includes(b.condition) ? b.condition : '',
         note: str(b.note, 1000), lang: ['uz', 'ru', 'en'].includes(b.lang) ? b.lang : 'uz', status: 'booked', created: new Date().toISOString() };
       await store.setJSON(`b/${id}`, booking);

@@ -336,7 +336,7 @@ const CONFIG = {
     imgs[i].classList.remove('on'); imgs[n].classList.add('on');
     dots.forEach((d, k) => d.classList.toggle('on', k === n));
     const cap = r.querySelector('.rot-cap');
-    if (cap) { cap.classList.add('swap'); setTimeout(() => { cap.textContent = imgs[n].dataset.cap || ''; cap.classList.remove('swap'); }, 400); }
+    if (cap) { cap.classList.add('swap'); setTimeout(() => { cap.textContent = imgs[n].getAttribute('data-cap-' + doc.lang) || imgs[n].getAttribute('data-cap-en') || ''; cap.classList.remove('swap'); }, 400); }
     const after = imgs[(n + 1) % imgs.length]; if (after.loading === 'lazy') after.loading = 'eager';   // load the next one early
   };
   document.querySelectorAll('[data-rot]').forEach(r => { const d = r.querySelector('.rot-dots i'); if (d) d.classList.add('on'); });

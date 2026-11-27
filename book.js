@@ -25,9 +25,12 @@
   const NAMES = { whatsapp: 'WhatsApp', telegram: 'Telegram', zoom: 'Zoom', teams: 'Microsoft Teams' };
   const ERR = {
     slot_gone: L('Bu vaqt hozirgina band qilindi. Boshqa vaqtni tanlang.', 'Это время только что заняли. Выберите другое.', 'Someone just booked that time. Please choose another.'),
+    first: L('Ismingizni yozing.', 'Укажите имя.', 'Please enter your first name.'),
+    last: L('Familiyangizni yozing.', 'Укажите фамилию.', 'Please enter your last name.'),
+    contact: L('Qoʻngʻiroq qayerda boʻlishini tanlang.', 'Выберите, где провести звонок.', 'Please choose where we should hold the call.'),
     name: L('Ism va familiyangizni yozing.', 'Укажите имя и фамилию.', 'Please enter your full name.'),
     phone: L('Telefon raqamini toʻliq yozing.', 'Укажите номер телефона полностью.', 'Please enter your full phone number.'),
-    email: L('Zoom yoki Teams uchun email yozing.', 'Для Zoom или Teams укажите email.', 'Please enter an email for Zoom or Teams.'),
+    email: L('Toʻgʻri email yozing.', 'Укажите правильный email.', 'Please enter a valid email.'),
     consent: L('Iltimos, rozilik belgisini qoʻying.', 'Пожалуйста, отметьте согласие.', 'Please tick the consent box.'),
     time: L('Avval vaqtni tanlang.', 'Сначала выберите время.', 'Please choose a time first.'),
     too_many: L('Bugun juda koʻp soʻrov yuborildi. Ertaga urinib koʻring yoki bizga yozing.', 'Сегодня отправлено слишком много заявок. Попробуйте завтра или напишите нам.', 'Too many bookings today from this connection. Try tomorrow or write to us.'),
@@ -102,43 +105,43 @@
     return `<p class="d">${fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }, viewTz)}</p><p class="t">${hm(d)}–${hm(new Date(d.getTime() + mins * 60000))}</p>${!tz || sameZone() ? '' : `<p class="muted small">${L('Toshkent vaqti', 'По Ташкенту', 'Tashkent time')}: ${hm(d, DATA.tz)}</p>`}`; };
   function summary() {
     const c = form.contact.value;
-    $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes, false)}<p class="muted small">${L('Video-qoʻngʻiroq', 'Видеозвонок', 'Video call')} · ${NAMES[c]}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;
+    $('#sum-when').innerHTML = pick ? `${whenHtml(pick, DATA.minutes, false)}<p class="muted small">${L('Video-qoʻngʻiroq', 'Видеозвонок', 'Video call')}${NAMES[c] ? ' · ' + NAMES[c] : ''}</p>` : `<p class="muted">${L('Hali vaqt tanlanmagan', 'Время ещё не выбрано', 'No time chosen yet')}</p>`;
     btn.disabled = !pick;
   }
-  const onContact = () => {
-    const c = form.contact.value, email = c === 'zoom' || c === 'teams';
-    $('#detail-field').hidden = !email; form.contactDetail.required = email; if (!email) form.contactDetail.value = '';
-    summary();
-  };
-  form.contact.addEventListener('change', onContact); onContact();
+  form.addEventListener('change', e => { if (e.target.name === 'contact') { e.target.closest('fieldset').classList.remove('bad'); summary(); } });
+  form.addEventListener('input', e => e.target.classList.remove('bad'));
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    const f = form, c = f.contact.value, detail = f.contactDetail.value.trim();
+    const f = form, c = f.contact.value, email = f.email.value.trim().toLowerCase(), detail = email;
+    const bad = (el, k) => { el.classList.add('bad'); if (el.focus) el.focus(); return say(ERR[k], 'err'); };
     if (!pick) return say(ERR.time, 'err');
-    if (f.name.value.trim().length < 2) { f.name.focus(); return say(ERR.name, 'err'); }
-    if (f.phone.value.replace(/\D/g, '').length < 7) { f.phone.focus(); return say(ERR.phone, 'err'); }
-    if ((c === 'zoom' || c === 'teams') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(detail)) { f.contactDetail.focus(); return say(ERR.email, 'err'); }
+    if (!f.first.value.trim()) return bad(f.first, 'first');
+    if (!f.last.value.trim()) return bad(f.last, 'last');
+    if (!/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(email)) return bad(f.email, 'email');
+    const dg = f.phone.value.replace(/\D/g, '').length;
+    if (dg < 8 || dg > 15) return bad(f.phone, 'phone');
+    if (!c) { const fs = form.querySelector('[data-f="contact"]'); fs.classList.add('bad'); fs.querySelector('input').focus(); return say(ERR.contact, 'err'); }
     if (!f.consent.checked) return say(ERR.consent, 'err');
     btn.disabled = true; say(L('Yozilmoqda…', 'Записываем…', 'Booking…'), 'ok');
-    const body = { start: pick, name: f.name.value.trim(), phone: f.phone.value.trim(), contact: c, contactDetail: detail, note: f.note.value.trim(), consent: true, website: f.website.value, lang: document.documentElement.lang };
+    const body = { start: pick, first: f.first.value.trim(), last: f.last.value.trim(), name: `${f.first.value.trim()} ${f.last.value.trim()}`, email, phone: f.phone.value.trim(), contact: c, contactDetail: detail, note: f.note.value.trim(), consent: true, website: f.website.value, lang: document.documentElement.lang };
     let r, d;
     try { r = await fetch('/api/clinic?action=book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); d = await r.json().catch(() => ({})); }
     catch (err) { r = { ok: false }; d = {}; }
     if (!r.ok) { say(ERR[d.error] || ERR.server, 'err'); btn.disabled = false; if (d.error === 'slot_gone') { pick = null; load(true); } return; }
     const b = d.booking, tashkent = new Date(b.start).toLocaleString('en-GB', { timeZone: DATA.tz, weekday: 'short', day: 'numeric', month: 'short', ...HM });
     /* email notice to the clinic via Netlify Forms (no health details in it) */
-    try { await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ 'form-name': 'clinic-booking', 'booking-id': b.id, when: `${tashkent} (Tashkent)`, name: body.name, phone: body.phone, contact: NAMES[c], 'contact-detail': detail }).toString() }); } catch (err) {}
+    try { await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ 'form-name': 'clinic-booking', 'booking-id': b.id, when: `${tashkent} (Tashkent)`, name: body.name, email: body.email, phone: body.phone, contact: NAMES[c], 'contact-detail': detail }).toString() }); } catch (err) {}
     done(b, body);
   });
 
   function done(b, body) {
-    const how = body.contactDetail || body.phone;
+    const how = c => c === 'zoom' || c === 'teams' ? body.email : body.phone;
     root.hidden = true; const box = $('#done'); box.hidden = false;
     box.innerHTML = `<div class="done-ico">${document.querySelector('#i-check') ? '<svg class="ic"><use href="#i-check"/></svg>' : '✓'}</div>
       <h2>${L('Siz yozildingiz!', 'Вы записаны!', 'You’re booked!')}</h2>
       <div class="sum-when">${whenHtml(b.start, b.minutes)}</div>
-      <p>${L(`Konsultatsiyadan oldin siz bilan <b>${NAMES[body.contact]}</b> orqali bogʻlanamiz (${esc(how)}) va havolani yuboramiz.`, `Перед консультацией мы свяжемся с вами через <b>${NAMES[body.contact]}</b> (${esc(how)}) и отправим ссылку.`, `Before the consultation we’ll contact you on <b>${NAMES[body.contact]}</b> (${esc(how)}) and send you the link.`)}</p>
+      <p>${L(`Konsultatsiyadan oldin siz bilan <b>${NAMES[body.contact]}</b> orqali bogʻlanamiz (${esc(how(body.contact))}) va havolani yuboramiz.`, `Перед консультацией мы свяжемся с вами через <b>${NAMES[body.contact]}</b> (${esc(how(body.contact))}) и отправим ссылку.`, `Before the consultation we’ll contact you on <b>${NAMES[body.contact]}</b> (${esc(how(body.contact))}) and send you the link.`)}</p>
       <p class="muted small">${L('Vaqtni oʻzgartirish kerak boʻlsa, bizga yozing.', 'Если нужно изменить время, напишите нам.', 'Need to change the time? Write to us.')}</p>
       <div class="actions"><button type="button" class="btn btn-p" id="ics">${L('Kalendarga qoʻshish', 'Добавить в календарь', 'Add to calendar')}</button><a class="btn btn-s" href="clinic.html">Shifo Clinic</a></div>`;
     $('#ics').addEventListener('click', () => {

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book a consultation — Shifo Clinic</title>
-<meta name="description" content="Book an online diabetes consultation with Shifo Clinic: pick a time and how we contact you (WhatsApp, Telegram, Zoom or Teams).">
+<meta name="description" content="Book an online diabetes consultation with Shifo Clinic: pick a time and where we hold the call (WhatsApp, Telegram, Zoom or Teams).">
 <meta name="theme-color" content="#86182F">
 <link rel="canonical" href="https://shifo-life.netlify.app/book.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Shifo Life">
 <meta property="og:title" content="Book a consultation — Shifo Clinic">
-<meta property="og:description" content="Book an online diabetes consultation with Shifo Clinic: pick a time and how we contact you (WhatsApp, Telegram, Zoom or Teams).">
+<meta property="og:description" content="Book an online diabetes consultation with Shifo Clinic: pick a time and where we hold the call (WhatsApp, Telegram, Zoom or Teams).">
 <meta property="og:url" content="https://shifo-life.netlify.app/book.html">
 <meta property="og:image" content="https://shifo-life.netlify.app/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -83,12 +83,15 @@
 
         <form class="card bstep" id="step-details" novalidate>
           <div class="bstep-h"><span class="n">2</span><h2><span data-l="uz">Maʼlumotlaringiz</span><span data-l="ru">Ваши данные</span><span data-l="en">Your details</span></h2></div>
-          <label><span data-l="uz">Ism va familiya</span><span data-l="ru">Имя и фамилия</span><span data-l="en">Full name</span><input name="name" autocomplete="name" required maxlength="100"></label>
-          <div class="row2">
-            <label><span data-l="uz">Telefon</span><span data-l="ru">Телефон</span><span data-l="en">Phone</span><input name="phone" type="tel" autocomplete="tel" required placeholder="+998 __ ___ __ __" maxlength="30"></label>
-            <label><span data-l="uz">Qayerda bogʻlanamiz?</span><span data-l="ru">Где с вами связаться?</span><span data-l="en">Where should we contact you?</span><select name="contact"><option value="telegram">Telegram</option><option value="whatsapp">WhatsApp</option><option value="zoom">Zoom</option><option value="teams">Microsoft Teams</option></select></label>
+          <div class="row2 names">
+            <label><span data-l="uz">Ism</span><span data-l="ru">Имя</span><span data-l="en">First name</span><input name="first" autocomplete="given-name" required maxlength="60"></label>
+            <label><span data-l="uz">Familiya</span><span data-l="ru">Фамилия</span><span data-l="en">Last name</span><input name="last" autocomplete="family-name" required maxlength="60"></label>
           </div>
-          <label id="detail-field" hidden><span data-l="uz">Taklif uchun email</span><span data-l="ru">Email для приглашения</span><span data-l="en">Email for the invitation</span><input name="contactDetail" type="email" maxlength="120" autocomplete="email" placeholder="name@example.com"></label>
+          <div class="row2">
+            <label>Email<input name="email" type="email" inputmode="email" autocomplete="email" required maxlength="120" placeholder="name@example.com"></label>
+            <label><span data-l="uz">Telefon raqami</span><span data-l="ru">Номер телефона</span><span data-l="en">Phone number</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="+998 90 123 45 67" maxlength="30"></label>
+          </div>
+          <fieldset class="opts-f" data-f="contact"><legend><span data-l="uz">Qoʻngʻiroq qayerda boʻlsin?</span><span data-l="ru">Где провести звонок?</span><span data-l="en">Where should we hold the call?</span></legend><div class="opts"><label><input type="radio" name="contact" value="telegram"><span>Telegram</span></label><label><input type="radio" name="contact" value="whatsapp"><span>WhatsApp</span></label><label><input type="radio" name="contact" value="zoom"><span>Zoom</span></label><label><input type="radio" name="contact" value="teams"><span>Microsoft Teams</span></label></div></fieldset>
           <label><span data-l="uz">Shifokor nimani bilishi kerak? (ixtiyoriy)</span><span data-l="ru">Что важно знать врачу? (необязательно)</span><span data-l="en">Anything the doctor should know? (optional)</span><textarea name="note" rows="3" maxlength="1000"></textarea></label>
           <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
           <label class="check"><input type="checkbox" name="consent" required><span><span data-l="uz">Shifo Clinic ushbu maʼlumotlardan konsultatsiyani tashkil qilish uchun foydalanishiga roziman.</span><span data-l="ru">Я согласен(на), что Shifo Clinic использует эти данные для организации консультации.</span><span data-l="en">I agree that Shifo Clinic uses these details to arrange my consultation.</span></span></label>
@@ -108,7 +111,7 @@
 </section>
 
 <form name="clinic-booking" data-netlify="true" netlify-honeypot="bot-field" hidden style="display:none">
-  <input name="bot-field"><input name="booking-id"><input name="when"><input name="name"><input name="phone"><input name="contact"><input name="contact-detail">
+  <input name="bot-field"><input name="booking-id"><input name="when"><input name="name"><input name="email"><input name="phone"><input name="contact"><input name="contact-detail">
 </form>
 <script src="book.js"></script>
 
