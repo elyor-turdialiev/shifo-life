@@ -109,4 +109,14 @@
     io.unobserve(en.target);
   }), { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
   items.forEach(el => io.observe(el));
+  /* A link to a section (#faq, academy#plans…) shows everything up to and around it at once,
+     so nothing above the landing point is left invisible while the page jumps */
+  const showTo = () => {
+    let t = null; try { t = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch (e) {}
+    if (!t) return;
+    const lim = t.getBoundingClientRect().bottom + innerHeight;
+    items.forEach(el => { if (!el.classList.contains('in') && el.getBoundingClientRect().top < lim) { el.classList.add('in'); io.unobserve(el); if (el.dataset.count) count(el); } });
+  };
+  showTo();
+  addEventListener('hashchange', showTo);
 })();

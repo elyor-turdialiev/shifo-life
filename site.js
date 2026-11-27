@@ -274,7 +274,8 @@ const CONFIG = {
     email: { uz: 'toʻgʻri email', ru: 'правильный email', en: 'a valid email' },
     phone: { uz: 'telefon raqami (kod bilan, masalan +998)', ru: 'номер телефона (с кодом, например +998)', en: 'a phone number with its country code (e.g. +998)' },
     contact: { uz: 'bogʻlanish usuli', ru: 'способ связи', en: 'how we should contact you' },
-    plan: { uz: 'tarif', ru: 'тариф', en: 'a plan' }
+    plan: { uz: 'tarif', ru: 'тариф', en: 'a plan' },
+    consent: { uz: 'maxfiylik siyosatiga rozilik', ru: 'согласие с политикой конфиденциальности', en: 'your agreement to the privacy policy' }
   };
   const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
   document.querySelectorAll('form.lead-form').forEach(form => {
@@ -284,7 +285,9 @@ const CONFIG = {
     // Telegram chosen: offer the (optional) username field
     const tg = form.querySelector('.tg-user');
     const syncTg = () => { if (tg) tg.hidden = !(el.contact && el.contact.value === 'telegram'); };
-    form.addEventListener('change', e => { if (e.target.name === 'contact') { syncTg(); e.target.closest('fieldset').classList.remove('bad'); } });
+    form.addEventListener('change', e => { if (e.target.name === 'contact') { syncTg(); e.target.closest('fieldset').classList.remove('bad'); } if (e.target.name === 'consent') e.target.closest('.consent').classList.remove('bad'); });
+    const again = form.querySelector('.form-again'), done = form.querySelector('.form-done');
+    if (again) again.addEventListener('click', () => { form.classList.remove('done'); done.hidden = true; again.hidden = true; msg.className = 'form-msg'; msg.textContent = ''; el.first.focus(); });
     form.addEventListener('change', e => { if (e.target.tagName === 'SELECT' && e.target.classList.contains('bad')) { e.target.classList.remove('bad'); e.target.removeAttribute('aria-invalid'); } });
     form.addEventListener('input', e => { if (e.target.classList.contains('bad')) { e.target.classList.remove('bad'); e.target.removeAttribute('aria-invalid'); } });
     syncTg();
@@ -297,6 +300,7 @@ const CONFIG = {
       if ((el.phone.required || phone || how === 'call' || how === 'whatsapp') && (digits.length < 8 || digits.length > 15)) out.push('phone');
       if (el.contact && !how) out.push('contact');
       if (el.plan && el.plan.required && !el.plan.value) out.push('plan');
+      if (el.consent && !el.consent.checked) out.push('consent');
       return out;
     };
     form.addEventListener('submit', async e => {
@@ -304,10 +308,10 @@ const CONFIG = {
       form.querySelectorAll('.bad').forEach(x => { x.classList.remove('bad'); x.removeAttribute('aria-invalid'); });
       const bad = problems();
       if (bad.length) {
-        bad.forEach(k => { const f = k === 'contact' ? form.querySelector('[data-f="contact"]') : el[k]; f.classList.add('bad'); if (k !== 'contact') f.setAttribute('aria-invalid', 'true'); });
+        bad.forEach(k => { const f = k === 'contact' ? form.querySelector('[data-f="contact"]') : k === 'consent' ? el.consent.closest('.consent') : el[k]; f.classList.add('bad'); if (k !== 'contact' && k !== 'consent') f.setAttribute('aria-invalid', 'true'); });
         if (bad.includes('plan') && form.classList.contains('in-sheet')) form.classList.remove('in-sheet');
         say((M.need[doc.lang] || M.need.en) + bad.map(k => FIELD[k][doc.lang] || FIELD[k].en).join(', ') + '.', 'err');
-        const first = bad[0] === 'contact' ? form.querySelector('[data-f="contact"] input') : el[bad[0]];
+        const first = bad[0] === 'contact' ? form.querySelector('[data-f="contact"] input') : bad[0] === 'consent' ? el.consent : el[bad[0]];
         first.focus();
         return;
       }
@@ -319,8 +323,10 @@ const CONFIG = {
         const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fd).toString() });
         if (!res.ok) throw new Error(res.status);
         // keep the chosen options visible; clear only what was typed
-        form.querySelectorAll('input:not([type="radio"]):not([type="hidden"]), textarea').forEach(x => { x.value = ''; });
+        form.querySelectorAll('input:not([type="radio"]):not([type="hidden"]):not([type="checkbox"]), textarea').forEach(x => { x.value = ''; });
+        if (el.consent) el.consent.checked = false;
         show('ok', 'ok');
+        if (done) { form.classList.add('done'); done.hidden = false; again.hidden = false; form.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       } catch (err) { show('err', 'err'); }
       finally { submit.disabled = false; }
     });

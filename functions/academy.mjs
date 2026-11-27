@@ -138,11 +138,13 @@ export default async (req) => {
   const body = async () => { try { return await req.json(); } catch (e) { return {}; } };
 
   /* the package list: saved by the CEO/admin; a list saved before the 3-month program existed gets it added once */
+  /* prices saved before rounding (249.99, 299.99, 359.99, 990.11) read as whole numbers; deliberate cents like 299.50 stay */
+  const roundOld = list => list.map(p => { const n = +p.price, r = Math.round(n); return Number.isFinite(n) && n !== r && Math.abs(n - r) <= 0.2 ? { ...p, price: r } : p; });
   const getPkgs = async () => {
     const st = await store.get('crm/packages', { type: 'json' });
     if (!st) return DEFAULT_PACKAGES;
-    if (Array.isArray(st)) return st.some(p => p.id === 'program-3m') ? st : st.concat(DEFAULT_PACKAGES.filter(p => p.id === 'program-3m'));
-    return st.list || DEFAULT_PACKAGES;
+    if (Array.isArray(st)) return roundOld(st.some(p => p.id === 'program-3m') ? st : st.concat(DEFAULT_PACKAGES.filter(p => p.id === 'program-3m')));
+    return st.list ? roundOld(st.list) : DEFAULT_PACKAGES;
   };
   const getAssign = async () => (await store.get('crm/assign', { type: 'json' })) || {};
   /* chat: one thread per student, shared by the student, their teacher and the admin team.

@@ -696,7 +696,10 @@ html.anim-steps .steps.flow:not(.in) > li::before{background:#EBDDE0;color:var(-
   .fh-media{order:-1;margin:0}
   .fh-photo{aspect-ratio:16/10;max-height:45vh;width:100%;border-radius:22px}
   .fh-media .fh-chip{left:12px !important;top:auto !important;bottom:-22px;width:auto !important;max-width:min(78%,300px);padding:12px 14px}
-  .fh-media .fh-chip .bar,.fh-media .fh-chip .wk{display:none}
+  .fh-media .fh-chip .bar,.fh-media .fh-chip .wk,.fh-media .fh-chip ul,.fh-media .fh-chip .row{display:none}
+  .fh-media .fh-chip{bottom:0 !important;translate:0 55%}
+  .fh-media .fh-chip .player > :not(.line){display:none}
+  .fh-media{margin-bottom:22px}
   .fh-media .fh-chip2{display:none}
 }
 /* Content still to come: shown only in the preview build */
@@ -757,3 +760,31 @@ picture.p-ph{overflow:hidden;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--rose)}
 .glow.on{opacity:1}
 .glow.hot{width:560px;height:560px;margin:-280px 0 0 -280px}
 .dark .glow,.glow.screen{mix-blend-mode:screen;background:radial-gradient(circle,rgba(240,140,160,.15) 0%,rgba(240,140,160,.05) 40%,rgba(240,140,160,0) 70%)}
+/* Forms: required marks, consent, success */
+.req{color:var(--garnet);margin-left:3px;font-weight:700}
+.req-note{font-size:.82rem;color:var(--muted);margin-top:10px}
+.consent{display:flex !important;flex-direction:row !important;align-items:flex-start;gap:10px;font-weight:400 !important;font-size:.92rem;margin-top:6px;cursor:pointer}
+.consent input{width:18px !important;height:18px;margin-top:2px;flex:0 0 auto;accent-color:var(--garnet)}
+.consent.bad span{color:#B42318}
+.form-done{text-align:center;padding:26px 0 6px}
+.form-done .done-ic{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 14px;border-radius:50%;background:var(--blush);color:var(--garnet)}
+.form-done .done-ic .ic{width:30px;height:30px}
+.lead-form.done > :not(.form-done):not(.form-msg):not(.form-again):not(input[type=hidden]){display:none !important}
+.lead-form.done .form-msg{text-align:center}
+.form-again{display:block;margin:12px auto 0}
+/* Contact links */
+.contact-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.contact-links a{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:600;font-size:.92rem;color:var(--ink);text-decoration:none}
+.contact-links a:hover{border-color:var(--garnet);color:var(--garnet)}
+.contact-links .ic{width:18px;height:18px}
+.or-reach{margin-top:26px;font-weight:600}
+footer .contact-links a{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#fff}
+/* Privacy page */
+.legal-doc{padding:72px 0 96px;background:linear-gradient(180deg,var(--blush) 0,#fff 420px)}
+.legal-doc .wrap{max-width:760px}
+.legal-doc h1{font-size:clamp(2.2rem,4.5vw,3.2rem);margin:18px 0 10px}
+.legal-doc section{margin-top:40px}
+.legal-doc h2{font-size:1.4rem;margin-bottom:12px}
+.legal-doc p,.legal-doc li{line-height:1.65;color:var(--ink-2,#3a2a2e)}
+.legal-doc ul{padding-left:20px;margin-top:10px}
+.legal-doc li{margin:6px 0}
