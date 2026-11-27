@@ -774,7 +774,7 @@ picture.p-ph{overflow:hidden;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--rose)}
 .form-again{display:block;margin:12px auto 0}
 /* Contact links */
 .contact-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.contact-links a{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:600;font-size:.92rem;color:var(--ink);text-decoration:none}
+.contact-links a{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:400;font-size:.92rem;color:var(--ink);text-decoration:none}
 .contact-links a:hover{border-color:var(--garnet);color:var(--garnet)}
 .contact-links .ic{width:18px;height:18px}
 .or-reach{margin-top:26px;font-weight:600}
@@ -792,3 +792,28 @@ footer .contact-links a{background:rgba(255,255,255,.08);border-color:rgba(255,2
 /* Field heroes: balanced headline lines; chips a little smaller on desktop */
 .fh-copy .h1{text-wrap:balance;font-size:clamp(2.3rem,4.2vw,3.7rem)}
 @media (min-width:1001px){.fh-media .ui{zoom:.86}.fh-copy .stats{display:grid;grid-template-columns:repeat(3,minmax(0,max-content));gap:16px 40px}.fh-copy .stats span{display:block;max-width:22ch}}
+@media (max-width:1000px){.founders.big{grid-template-columns:minmax(0,1fr);gap:40px}.founders.big .pframe{max-width:none;margin:0}}
+
+/* Swiped tab panels slide in from the side they came from */
+@keyframes slideL{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes slideR{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+.slide-l{animation:slideL .35s cubic-bezier(.2,.8,.2,1)}
+.slide-r{animation:slideR .35s cubic-bezier(.2,.8,.2,1)}
+[role=tabpanel],.rot{touch-action:pan-y}
+.snap-dots{display:none}
+@media (max-width:700px){
+  .snap-dots{display:flex;justify-content:center;gap:8px;margin-top:6px}
+  .snap-dots i{width:8px;height:8px;border-radius:99px;background:#E7CCD2;transition:width .25s,background .25s;cursor:pointer}
+  .snap-dots i.on{width:22px;background:var(--garnet)}
+}
+@media (prefers-reduced-motion:reduce){.slide-l,.slide-r{animation:none}}
+.fh-photo img{object-position:50% 22%}
+.nw{white-space:nowrap}
+
+/* Phones: long lists of cards become one swipeable row (with dots), so the page is shorter */
+@media (max-width:700px){
+  .rows,.topicgrid,.journey,.goals,.team,.fields4{display:flex !important;grid-template-columns:none !important;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px !important;
+    margin-left:-20px !important;margin-right:-20px !important;padding:4px 20px 16px !important;scrollbar-width:none;overscroll-behavior-x:contain}
+  .rows::-webkit-scrollbar,.topicgrid::-webkit-scrollbar,.journey::-webkit-scrollbar,.goals::-webkit-scrollbar,.team::-webkit-scrollbar,.fields4::-webkit-scrollbar{display:none}
+  .rows > *,.topicgrid > *,.journey > *,.goals > *,.team > *,.fields4 > *{flex:0 0 82%;scroll-snap-align:center;max-width:none;opacity:1 !important;transform:none !important}
+}

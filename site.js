@@ -88,6 +88,16 @@ const CONFIG = {
       });
     });
     list._select = i => select(tabs[i]);
+    /* On touch screens, swipe the open panel sideways to move to the next or previous tab */
+    const panels = tabs.map(t => document.getElementById(t.getAttribute('aria-controls'))).filter(Boolean);
+    panels.forEach(p => onSwipe(p, dir => {
+      const cur = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'), n = cur + dir;
+      if (n < 0 || n >= tabs.length) return;
+      select(tabs[n]);
+      const np = document.getElementById(tabs[n].getAttribute('aria-controls'));
+      if (np) { np.classList.remove('slide-l', 'slide-r'); void np.offsetWidth; np.classList.add(dir > 0 ? 'slide-l' : 'slide-r'); }
+      tabs[n].scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }));
   });
 
   /* ---------- Stepper (tabs with Back / Next) ---------- */
@@ -335,24 +345,27 @@ const CONFIG = {
   /* ---------- Photos that cross-fade; the About story swaps its photo as you read ---------- */
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ROTS = new Set();
-  const step = r => {
+  const step = (r, d = 1) => {
     const imgs = [...r.querySelectorAll(':scope > picture')], dots = [...r.querySelectorAll('.rot-dots i')];
     if (imgs.length < 2) return;
-    const i = imgs.findIndex(x => x.classList.contains('on')), n = (i + 1) % imgs.length;
+    const i = imgs.findIndex(x => x.classList.contains('on')), n = (i + d + imgs.length) % imgs.length;
     imgs[i].classList.remove('on'); imgs[n].classList.add('on');
     dots.forEach((d, k) => d.classList.toggle('on', k === n));
     const cap = r.querySelector('.rot-cap');
     if (cap) { cap.classList.add('swap'); setTimeout(() => { cap.textContent = imgs[n].getAttribute('data-cap-' + doc.lang) || imgs[n].getAttribute('data-cap-en') || ''; cap.classList.remove('swap'); }, 400); }
     const after = imgs[(n + 1) % imgs.length].querySelector('img'); if (after.loading === 'lazy') after.loading = 'eager';   // load the next one early
   };
-  document.querySelectorAll('[data-rot]').forEach(r => { const d = r.querySelector('.rot-dots i'); if (d) d.classList.add('on'); });
+  document.querySelectorAll('[data-rot]').forEach(r => {
+    const d = r.querySelector('.rot-dots i'); if (d) d.classList.add('on');
+    onSwipe(r, dir => { r._held = Date.now(); step(r, dir); });   // swipe through the photos; the slideshow waits a little after
+  });
   if ('IntersectionObserver' in window) {
     const seen = new IntersectionObserver(es => es.forEach(e => e.isIntersecting ? ROTS.add(e.target) : ROTS.delete(e.target)), { threshold: .3 });
     document.querySelectorAll('[data-rot]').forEach(r => seen.observe(r));
     // the sticky frame is hidden to the observer's eyes (aria only), so track the shown one directly
     if (!still) setInterval(() => {
       if (document.hidden) return;
-      ROTS.forEach(r => { if (!r.closest('.story-frame') || r.classList.contains('show')) step(r); });
+      ROTS.forEach(r => { if (r._held && Date.now() - r._held < 8000) return; if (!r.closest('.story-frame') || r.classList.contains('show')) step(r); });
     }, 3600);
   }
 
@@ -426,3 +439,28 @@ document.querySelectorAll('[data-daynight]').forEach(s => {
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('dealt'); io.unobserve(e.target); } }), { threshold: .4 });
   els.forEach(e => io.observe(e));
 })();
+
+/* Sideways swipe on touch screens: fn(+1) for a swipe to the left (next), fn(-1) for a swipe to the right (previous) */
+function onSwipe(el, fn) {
+  let x0 = null, y0 = 0, t0 = 0;
+  el.addEventListener('touchstart', e => { if (e.touches.length !== 1) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }, { passive: true });
+  el.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4 && Date.now() - t0 < 800) fn(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+/* Plan cards on phones: dots under the row show which card you are on; tap a dot to jump */
+document.querySelectorAll('[data-snap], .rows, .topicgrid, .journey, .goals, .team, .fields4').forEach(row => {
+  const cards = [...row.children]; if (cards.length < 2) return;
+  const dots = document.createElement('div'); dots.className = 'snap-dots'; dots.setAttribute('aria-hidden', 'true');
+  cards.forEach((c, i) => { const b = document.createElement('i'); b.addEventListener('click', () => row.scrollTo({ left: c.offsetLeft - (row.clientWidth - c.clientWidth) / 2, behavior: 'smooth' })); dots.appendChild(b); });
+  row.after(dots);
+  const mark = () => {
+    const mid = row.scrollLeft + row.clientWidth / 2;
+    let best = 0, bd = 1e9; cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.clientWidth / 2 - mid); if (d < bd) { bd = d; best = i; } });
+    [...dots.children].forEach((d, i) => d.classList.toggle('on', i === best));
+  };
+  row.addEventListener('scroll', () => requestAnimationFrame(mark), { passive: true }); mark();
+});

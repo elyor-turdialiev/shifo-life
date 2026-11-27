@@ -97,6 +97,12 @@
   }
   $('#cal-prev').addEventListener('click', () => { week = addDays(week, -7); cal(); });
   $('#cal-next').addEventListener('click', () => { week = addDays(week, 7); cal(); });
+  /* phones: swipe the row of days sideways to change week */
+  (() => { let x0 = null, y0 = 0; const el = $('#days');
+    el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) { const b = $(dx < 0 ? '#cal-next' : '#cal-prev'); if (!b.disabled) b.click(); } }, { passive: true });
+  })();
   function times() {
     $('#times').innerHTML = (byDay[day] || []).map(s => `<button type="button" data-t="${s}" aria-pressed="${s === pick}">${hm(new Date(s))}</button>`).join('');
     $('#times').querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { pick = b.dataset.t; $('#times').querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); summary(); say(''); if (window.innerWidth < 900) form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
