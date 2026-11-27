@@ -788,3 +788,7 @@ footer .contact-links a{background:rgba(255,255,255,.08);border-color:rgba(255,2
 .legal-doc p,.legal-doc li{line-height:1.65;color:var(--ink-2,#3a2a2e)}
 .legal-doc ul{padding-left:20px;margin-top:10px}
 .legal-doc li{margin:6px 0}
+
+/* Field heroes: balanced headline lines; chips a little smaller on desktop */
+.fh-copy .h1{text-wrap:balance;font-size:clamp(2.3rem,4.2vw,3.7rem)}
+@media (min-width:1001px){.fh-media .ui{zoom:.86}.fh-copy .stats{display:grid;grid-template-columns:repeat(3,minmax(0,max-content));gap:16px 40px}.fh-copy .stats span{display:block;max-width:22ch}}
