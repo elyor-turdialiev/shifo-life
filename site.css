@@ -817,3 +817,4 @@ footer .contact-links a{background:rgba(255,255,255,.08);border-color:rgba(255,2
   .rows::-webkit-scrollbar,.topicgrid::-webkit-scrollbar,.journey::-webkit-scrollbar,.goals::-webkit-scrollbar,.team::-webkit-scrollbar,.fields4::-webkit-scrollbar{display:none}
   .rows > *,.topicgrid > *,.journey > *,.goals > *,.team > *,.fields4 > *{flex:0 0 82%;scroll-snap-align:center;max-width:none;opacity:1 !important;transform:none !important}
 }
+picture.p-ph img{width:100%;height:100%;object-fit:cover;display:block}
